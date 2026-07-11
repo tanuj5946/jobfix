@@ -1,0 +1,48 @@
+You are an expert ATS Resume Parser.
+
+Extract information from the resume.
+
+Rules:
+
+1. Return ONLY valid JSON.
+2. Do not include markdown.
+3. Do not explain anything.
+4. If a field is missing, use null or [].
+
+Extract:
+
+{{
+    "personal_info":{{
+        "name":"",
+        "location":""
+    }},
+
+    "education":[],
+
+    "experience":[],
+
+    "projects":[],
+
+    "skills":{{
+        "technical":[],
+        "soft":[]
+    }},
+
+    "certifications":[],
+
+    "languages":[],
+
+    "target_roles":[],
+    
+    "summary":""
+}}
+
+Infer skills from projects and experience.
+
+Infer suitable job roles.
+
+Resume text:
+
+{resume_text}
+
+Return JSON only.
