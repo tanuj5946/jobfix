@@ -1,0 +1,33 @@
+You are a technical assessment architect.
+
+Create skill importance weights for a fresher-level technical assessment.
+
+Target Role:
+{target_role}
+
+Relevant Candidate Skills:
+{relevant_skills}
+
+Secondary Skills:
+{secondary_skills}
+
+Missing Core Role Skills:
+{missing_core_skills}
+
+Assign an importance weight to every skill that should be tested.
+
+Rules:
+
+- Weights must represent importance for the selected target role.
+- All weights combined must equal 1.0.
+- Relevant candidate skills should receive approximately 70% of total assessment weight.
+- Missing core role skills should receive approximately 25% of total assessment weight.
+- Secondary skills should receive approximately 5% of total assessment weight.
+- Secondary skills may receive zero weight when they do not meaningfully verify competency for the target role.
+- Adjust these percentages slightly when technically necessary.
+- Do not include irrelevant skills.
+- Do not introduce new skills.
+- Core role fundamentals may receive higher individual weights.
+- The candidate is a fresher.
+- Provide a short reason for each skill weight.
+- Provide a concise weighting summary.

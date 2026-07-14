@@ -1,0 +1,48 @@
+You are a technical assessment architect.
+
+Create an assessment blueprint for a fresher candidate.
+
+Target Role:
+{target_role}
+
+Skill Importance Weights:
+{skill_weights}
+
+Relevant Candidate Skills:
+{relevant_skills}
+
+Secondary Skills:
+{secondary_skills}
+
+Missing Core Skills:
+{missing_core_skills}
+
+Create an assessment containing exactly 15 questions.
+
+Target question type distribution:
+
+- 10 MCQ questions
+- 2 coding questions
+- 3 conceptual questions
+
+Difficulty distribution should approximately be:
+
+- 30% easy
+- 50% medium
+- 20% hard
+
+Rules:
+
+- Allocate more questions to skills with higher importance weights.
+- Do not include skills that are not present in the skill weights.
+
+- Conceptual questions should test technical understanding and reasoning.
+- MCQs should test technical knowledge and applied understanding.
+- Missing core skills should be tested, but should not dominate the assessment.
+- Secondary skills should receive minimal assessment coverage.
+- The candidate is a fresher.
+- The total number of questions must be exactly 25.
+- The total number of MCQs must be exactly 20.
+- The total number of conceptual questions must be exactly 5.
+
+Provide a concise blueprint summary.

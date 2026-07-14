@@ -1,0 +1,110 @@
+# ============================================================
+# SmartFresher — Root .gitignore (Monorepo)
+# Covers: React/Vite frontend, Express.js, FastAPI + LangGraph,
+# Docker, PostgreSQL, CI/CD, OS/editor junk
+# ============================================================
+
+# ---------------- Environment & Secrets ----------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*.json
+secrets/
+
+# ---------------- Node.js / Express / React (Vite) ----------------
+node_modules/
+**/node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+.cache/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+package-lock.json.bak
+
+# ---------------- Python / FastAPI / LangGraph ----------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.Python
+env/
+venv/
+.venv/
+ENV/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.sqlite3
+poetry.lock.bak
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ---------------- AI / LLM specific ----------------
+# Local prompt/response debug dumps, cached embeddings, etc.
+*.ipynb_checkpoints/
+.langchain/
+.langgraph_checkpoints/
+*.cache.json
+ai_debug_logs/
+
+# ---------------- Database ----------------
+*.sql.bak
+*.dump
+pgdata/
+postgres-data/
+*.db
+
+# ---------------- Docker ----------------
+docker-compose.override.yml
+*.pid
+
+# ---------------- Logs ----------------
+logs/
+*.log
+
+# ---------------- Testing / Coverage ----------------
+coverage/
+.nyc_output/
+htmlcov/
+.tox/
+
+# ---------------- Build / Deployment ----------------
+*.tsbuildinfo
+.next/
+out/
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# ---------------- OS Files ----------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------- Editor / IDE ----------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------------- Uploads / User data (local dev) ----------------
+uploads/
+resumes/
+*.pdf
+!docs/**/*.pdf
+
+# ---------------- Misc ----------------
+.turbo/
+.parcel-cache/
+sample_resume.pdf
+image.png

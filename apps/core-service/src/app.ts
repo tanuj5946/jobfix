@@ -1,0 +1,30 @@
+import express from 'express';
+import cors    from 'cors';
+import morgan  from 'morgan';
+import { env }             from './config/env';
+import routes              from './routes';
+import { errorMiddleware } from './middleware/error.middleware';
+
+const app = express();
+
+// ── Middleware ───────────────────────────────────────────────
+app.use(cors({
+  origin: env.CORS_ORIGINS.split(',').map(o => o.trim()),
+  credentials: true,
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+
+// ── Health check ─────────────────────────────────────────────
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'core-service', timestamp: new Date().toISOString() });
+});
+
+// ── API routes ───────────────────────────────────────────────
+app.use('/', routes);
+
+// ── Global error handler (must be last) ─────────────────────
+app.use(errorMiddleware);
+
+export default app;
