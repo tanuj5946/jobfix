@@ -36,6 +36,50 @@ validation_service = QuestionValidationService()
 assessment_builder_service = AssessmentBuilderService()
 logger = logging.getLogger("ai-service")
 
+GENERIC_SUPPORT_SKILLS = {
+    "git",
+    "github",
+    "gitlab",
+    "bitbucket",
+    "vs code",
+    "visual studio code",
+    "postman",
+    "jira",
+    "slack",
+    "trello",
+    "microsoft office",
+    "ms office",
+    "excel",
+    "powerpoint",
+    "word",
+}
+
+
+def normalize_skill_name(skill: str) -> str:
+    return " ".join(skill.strip().lower().split())
+
+
+def unique_skills(skills: list[str]) -> list[str]:
+    seen = set()
+    unique = []
+
+    for skill in skills:
+        normalized = normalize_skill_name(skill)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        unique.append(skill.strip())
+
+    return unique
+
+
+def remove_generic_support_skills(skills: list[str]) -> list[str]:
+    return [
+        skill
+        for skill in unique_skills(skills)
+        if normalize_skill_name(skill) not in GENERIC_SUPPORT_SKILLS
+    ]
+
 
 def analyze_skill_relevance(
     state: AssessmentState
@@ -64,11 +108,23 @@ def analyze_skill_relevance(
         llm_latency_ms=round(latency_ms, 2),
     )
 
+    relevant_skills = remove_generic_support_skills(result.relevant_skills)
+    secondary_skills = remove_generic_support_skills(result.secondary_skills)
+    irrelevant_skills = unique_skills(
+        result.irrelevant_skills
+        + [
+            skill
+            for skill in state["selected_skills"]
+            if normalize_skill_name(skill) in GENERIC_SUPPORT_SKILLS
+        ]
+    )
+    missing_core_skills = remove_generic_support_skills(result.missing_core_skills)
+
     return {
-        "relevant_skills": result.relevant_skills,
-        "secondary_skills": result.secondary_skills,
-        "irrelevant_skills": result.irrelevant_skills,
-        "missing_core_skills": result.missing_core_skills,
+        "relevant_skills": relevant_skills,
+        "secondary_skills": secondary_skills,
+        "irrelevant_skills": irrelevant_skills,
+        "missing_core_skills": missing_core_skills,
         "skill_analysis_reasoning": result.reasoning
     }
 
@@ -94,14 +150,21 @@ def calculate_skill_weights(
     state: AssessmentState
 ) -> dict:
 
+    eligible_skills = remove_generic_support_skills(
+        state["relevant_skills"]
+        + state["missing_core_skills"]
+    )
+    testable_skills = set(
+        normalize_skill_name(skill)
+        for skill in eligible_skills
+    )
+
     payload = {
         "target_role": state["target_role"],
         "relevant_skills": ", ".join(
             state["relevant_skills"]
         ),
-        "secondary_skills": ", ".join(
-            state["secondary_skills"]
-        ),
+        "secondary_skills": "",
         "missing_core_skills": ", ".join(
             state["missing_core_skills"]
         )
@@ -120,14 +183,28 @@ def calculate_skill_weights(
     weights = {
         item.skill: item.weight
         for item in result.skill_weights
+        if normalize_skill_name(item.skill) in testable_skills
+        and normalize_skill_name(item.skill) not in GENERIC_SUPPORT_SKILLS
     }
+
+    if not weights:
+        weights = {
+            skill: 1.0
+            for skill in eligible_skills
+        }
 
     weights = normalize_weights(weights)
 
     reasons = {
         item.skill: item.reason
         for item in result.skill_weights
+        if item.skill in weights
     }
+    for skill in weights:
+        reasons.setdefault(
+            skill,
+            "Included because it is directly relevant to the target role.",
+        )
 
     return {
         "skill_weights": weights,
@@ -138,6 +215,15 @@ def calculate_skill_weights(
 def generate_assessment_blueprint(
     state: AssessmentState
 ) -> dict:
+
+    blueprint_errors = state.get("blueprint_errors", [])
+    if blueprint_errors:
+        blueprint_feedback = (
+            "Previous blueprint was invalid. Fix these issues:\n"
+            + "\n".join(f"- {error}" for error in blueprint_errors)
+        )
+    else:
+        blueprint_feedback = ""
 
     payload = {
         "target_role": state["target_role"],
@@ -150,7 +236,8 @@ def generate_assessment_blueprint(
         ),
         "missing_core_skills": ", ".join(
             state["missing_core_skills"]
-        )
+        ),
+        "blueprint_feedback": blueprint_feedback,
     }
     start_time = time.perf_counter()
     result = llm_cache.get_or_set(
@@ -217,7 +304,7 @@ def validate_blueprint(
 
     if total_questions != 25:
         errors.append(
-            f"Expected 15 questions, got {total_questions}"
+            f"Expected 25 questions, got {total_questions}"
         )
 
     if type_counts["mcq"] != 20:
@@ -247,30 +334,72 @@ def prepare_blueprint_retry(
     }
 
 
+def missing_requirements_from_blueprint(
+    state: AssessmentState,
+    reason: str,
+) -> list[dict]:
+    missing_requirements = []
+
+    for skill_blueprint in state.get("blueprint", []):
+        skill = skill_blueprint.get("skill")
+        for requirement in skill_blueprint.get("requirements", []):
+            count = int(requirement.get("count", 0) or 0)
+            if count <= 0:
+                continue
+
+            missing_requirements.append(
+                {
+                    "role": state.get("target_role"),
+                    "skill": skill,
+                    "difficulty": requirement.get("difficulty"),
+                    "question_type": requirement.get("question_type"),
+                    "required": count,
+                    "retrieved": 0,
+                    "retrieval_error": reason,
+                }
+            )
+
+    return missing_requirements
+
 def retrieve_assessment_questions(
     state: AssessmentState
 ) -> dict:
     try:
         start_time = time.perf_counter()
+
         retriever = QuestionRetriever()
+
         result = retriever.retrieve_for_blueprint(
             target_role=state["target_role"],
             blueprint=state["blueprint"],
         )
+
+        print("\n========== QUESTION RETRIEVAL ==========")
+        print("Retrieved Questions :", len(result.get("retrieved_questions", [])))
+        print("Missing Requirements :", result.get("missing_requirements", []))
+        print("========================================\n")
+
         latency_ms = (time.perf_counter() - start_time) * 1000
+
         metrics_registry.observe("retrieval_latency_ms", latency_ms)
+
         total_retrieved = len(result.get("retrieved_questions", []))
+
         total_missing = sum(
             item.get("required", 0) - item.get("retrieved", 0)
             for item in result.get("missing_requirements", [])
         )
+
         total_required = total_retrieved + max(total_missing, 0)
+
         if total_required > 0:
             metrics_registry.observe(
                 "question_reuse_percentage",
                 round((total_retrieved / total_required) * 100, 2),
             )
+
         return result
+
     except Exception as exc:
         metrics_registry.increment("retrieval_errors")
         log_event(
@@ -279,14 +408,13 @@ def retrieve_assessment_questions(
             "question_retrieval_failed",
             error=str(exc),
         )
+
         return {
             "retrieved_questions": [],
-            "missing_requirements": [
-                {
-                    "role": state.get("target_role"),
-                    "reason": str(exc),
-                }
-            ],
+            "missing_requirements": missing_requirements_from_blueprint(
+                state,
+                str(exc),
+            ),
         }
 
 
@@ -298,6 +426,11 @@ def generate_missing_questions(
             missing_requirements=state.get("missing_requirements", []),
             existing_questions=state.get("retrieved_questions", []),
         )
+
+        print("\n========== QUESTION GENERATION ==========")
+        print("Generated:", len(generated_questions))
+        print("=========================================\n")
+
     except Exception as exc:
         metrics_registry.increment("generation_errors")
         log_event(
@@ -306,6 +439,11 @@ def generate_missing_questions(
             "question_generation_failed",
             error=str(exc),
         )
+
+        print("\n========== QUESTION GENERATION ERROR ==========")
+        print(exc)
+        print("===============================================\n")
+
         generated_questions = []
 
     return {
@@ -329,9 +467,19 @@ def validate_generated_questions(
             questions=generated_questions,
             existing_questions=existing_questions,
         )
-        stored_questions = QuestionStorageService().store_questions(
-            validation["valid_questions"]
-        )
+        try:
+            stored_questions = QuestionStorageService().store_questions(
+                validation["valid_questions"]
+            )
+        except Exception as exc:
+            metrics_registry.increment("storage_errors")
+            log_event(
+                logger,
+                logging.WARNING,
+                "question_storage_failed_using_unstored_questions",
+                error=str(exc),
+            )
+            stored_questions = validation["valid_questions"]
     except Exception as exc:
         metrics_registry.increment("validation_errors")
         log_event(
@@ -388,16 +536,31 @@ def regenerate_failed_questions(
         ),
     }
 
-
 def build_final_assessment(
     state: AssessmentState
 ) -> dict:
+
+    retrieved_questions = state.get(
+        "retrieved_questions",
+        []
+    )
+
+    generated_questions = state.get(
+        "validated_generated_questions",
+        []
+    )
+
+    if not retrieved_questions and not generated_questions:
+        raise RuntimeError(
+            "Assessment cannot be built because no questions were retrieved or generated."
+        )
+
     final_assessment = assessment_builder_service.build_assessment(
         assessment_name=state.get("assessment_name"),
         target_role=state["target_role"],
         blueprint=state.get("blueprint", []),
-        retrieved_questions=state.get("retrieved_questions", []),
-        generated_questions=state.get("validated_generated_questions", []),
+        retrieved_questions=retrieved_questions,
+        generated_questions=generated_questions,
     )
 
     return {

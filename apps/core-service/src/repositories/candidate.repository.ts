@@ -46,16 +46,20 @@ export class CandidateRepository {
   }
 
   async replaceSelectedSkills(candidateId: number, skillNames: string[]) {
-    const skills = [];
+    const uniqueSkillNames = this.uniqueSkillNames(skillNames);
 
-    for (const skillName of skillNames) {
-      const skill = await prisma.skill.upsert({
-        where: { name: skillName },
-        update: {},
-        create: { name: skillName },
+    if (uniqueSkillNames.length) {
+      await prisma.skill.createMany({
+        data: uniqueSkillNames.map(name => ({ name })),
+        skipDuplicates: true,
       });
-      skills.push(skill);
     }
+
+    const skills = uniqueSkillNames.length
+      ? await prisma.skill.findMany({
+          where: { name: { in: uniqueSkillNames } },
+        })
+      : [];
 
     await prisma.candidateSkill.deleteMany({
       where: { candidateId },
@@ -83,29 +87,59 @@ export class CandidateRepository {
     candidateId: number,
     skills: Array<{ name: string; confidence: number }>,
   ) {
-    for (const parsedSkill of skills) {
-      const skill = await prisma.skill.upsert({
-        where: { name: parsedSkill.name },
-        update: {},
-        create: { name: parsedSkill.name },
-      });
+    const parsedSkillsByName = new Map<string, { name: string; confidence: number }>();
+    for (const skill of skills) {
+      const name = skill.name.trim();
+      if (name) {
+        parsedSkillsByName.set(name, { name, confidence: skill.confidence });
+      }
+    }
 
+    const skillNames = Array.from(parsedSkillsByName.keys());
+    if (!skillNames.length) {
+      return;
+    }
+
+    await prisma.skill.createMany({
+      data: skillNames.map(name => ({ name })),
+      skipDuplicates: true,
+    });
+
+    const storedSkills = await prisma.skill.findMany({
+      where: { name: { in: skillNames } },
+    });
+
+    for (const skill of storedSkills) {
       await prisma.candidateSkill.upsert({
         where: {
-          candidateId_skillId: { candidateId, skillId: skill.id },
+          candidateId_skillId: {
+            candidateId,
+            skillId: skill.id,
+          },
         },
         update: {
-          parseConfidence: parsedSkill.confidence,
+          parseConfidence: parsedSkillsByName.get(skill.name)?.confidence,
           source: 'auto_detected',
         },
         create: {
           candidateId,
           skillId: skill.id,
           source: 'auto_detected',
-          parseConfidence: parsedSkill.confidence,
+          parseConfidence: parsedSkillsByName.get(skill.name)?.confidence,
         },
       });
     }
+
+  }
+
+  private uniqueSkillNames(skillNames: string[]) {
+    return Array.from(
+      new Set(
+        skillNames
+          .map(skillName => skillName.trim())
+          .filter(Boolean),
+      ),
+    );
   }
 }
 

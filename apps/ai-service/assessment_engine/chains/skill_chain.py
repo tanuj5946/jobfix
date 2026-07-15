@@ -2,7 +2,7 @@ from pathlib import Path
 
 from langchain_core.prompts import PromptTemplate
 
-from shared.llm import get_llm
+from shared.llm import get_structured_llm
 
 from assessment_engine.schemas.skill_schema import (
     SkillWeightAnalysis
@@ -10,8 +10,6 @@ from assessment_engine.schemas.skill_schema import (
 
 
 def build_skill_weight_chain():
-
-    llm = get_llm()
 
     prompt_path = (
         Path(__file__).resolve().parent.parent
@@ -27,7 +25,7 @@ def build_skill_weight_chain():
         prompt_text
     )
 
-    structured_llm = llm.with_structured_output(
+    structured_llm = get_structured_llm(
         SkillWeightAnalysis
     )
 

@@ -357,9 +357,10 @@ class AssessmentRepository:
                             resource_title,
                             resource_url,
                             resource_type,
-                            priority
+                            priority,
+                            updated_at
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, NOW())
                         """,
                         (
                             candidate_id,

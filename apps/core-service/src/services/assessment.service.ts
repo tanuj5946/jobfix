@@ -17,10 +17,20 @@ export class AssessmentService {
     if (!selectedSkills.length) {
       throw new Error('Select at least one skill before generating an assessment');
     }
+const aiAssessment = await aiServiceClient.createAssessment(
+  selectedSkills,
+  selectedRole,
+);
 
-    const aiAssessment = await aiServiceClient.createAssessment(selectedSkills, selectedRole);
-    const finalAssessment = aiAssessment.final_assessment;
+console.log("\n========== AI ASSESSMENT ==========");
+console.dir(aiAssessment, { depth: null });
+console.log("==================================\n");
 
+const finalAssessment = aiAssessment.final_assessment;
+
+console.log("\n========== FINAL ASSESSMENT ==========");
+console.dir(finalAssessment, { depth: null });
+console.log("=====================================\n");
     if (!finalAssessment?.questions?.length) {
       throw new Error('AI service did not return assessment questions');
     }
@@ -59,20 +69,51 @@ export class AssessmentService {
       throw new Error('Assessment not found');
     }
 
-    this.validateSubmission(assessment.questions.map(question => question.id), answers);
+    if (assessment.result) {
+      await prisma.assessment.update({
+        where: { id: assessment.id },
+        data: { status: 'completed', completedAt: new Date() },
+      });
 
-    const existingSubmittedAttempt = await this.hasSubmittedAttempt(assessment.id, profile.id);
-    if (existingSubmittedAttempt) {
-      throw new Error('Assessment has already been submitted');
+      // A duplicate request can happen if the browser retries after the AI
+      // service has completed. Treat it as successful and return the result.
+      return {
+        assessment_id: assessment.id,
+        result: assessment.result,
+      };
     }
 
-    const attempt = await assessmentRepository.createAttempt(assessment.id, profile.id, answers);
+    this.validateSubmission(assessment.questions.map(question => question.id), answers);
 
-    return aiServiceClient.evaluateAssessment({
+    const existingSubmittedAttempt = await prisma.assessmentAttempt.findFirst({
+      where: {
+        assessmentId: assessment.id,
+        candidateId: profile.id,
+        status: 'submitted',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // If evaluation previously failed after the answers were persisted, retry
+    // evaluation using the same attempt instead of blocking the candidate.
+    const attempt = existingSubmittedAttempt ?? await assessmentRepository.createAttempt(
+      assessment.id,
+      profile.id,
+      answers,
+    );
+
+    const evaluation = await aiServiceClient.evaluateAssessment({
       assessment_id: assessment.id,
       candidate_id: profile.id,
       attempt_id: Number(attempt.id),
     });
+
+    await prisma.assessment.update({
+      where: { id: assessment.id },
+      data: { status: 'completed', completedAt: new Date() },
+    });
+
+    return evaluation;
   }
 
   async listResults(userId: number) {
@@ -108,12 +149,6 @@ export class AssessmentService {
     }
   }
 
-  private async hasSubmittedAttempt(assessmentId: number, candidateId: number) {
-    const attempt = await prisma.assessmentAttempt.findFirst({
-      where: { assessmentId, candidateId, status: 'submitted' },
-    });
-    return Boolean(attempt);
-  }
 }
 
 export const assessmentService = new AssessmentService();

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from typing import Any
 
 from assessment_engine.chains.validation_chain import build_validation_chain
@@ -14,7 +15,11 @@ logger = logging.getLogger("ai-service")
 
 class QuestionValidationService:
     def __init__(self, validation_chain=None):
-        self.validation_chain = validation_chain or build_validation_chain()
+        self.validation_chain = validation_chain
+        self.use_llm_validation = (
+            os.getenv("ENABLE_LLM_QUESTION_VALIDATION", "false").lower()
+            == "true"
+        )
 
     def validate_questions(
         self,
@@ -36,20 +41,24 @@ class QuestionValidationService:
                 "failed_questions": [],
             }
 
-        llm_result = self.validation_chain.invoke(
-            {
-                "questions_json": json.dumps(
-                    questions,
-                    ensure_ascii=False,
-                    default=str,
-                ),
-                "existing_questions_json": json.dumps(
-                    existing_questions,
-                    ensure_ascii=False,
-                    default=str,
-                ),
-            }
-        )
+        llm_result = self._base_validation_result(questions)
+        if self.use_llm_validation:
+            chain = self.validation_chain or build_validation_chain()
+            llm_result = chain.invoke(
+                {
+                    "questions_json": json.dumps(
+                        questions,
+                        ensure_ascii=False,
+                        default=str,
+                    ),
+                    "existing_questions_json": json.dumps(
+                        existing_questions,
+                        ensure_ascii=False,
+                        default=str,
+                    ),
+                }
+            )
+
         final_result = self._apply_deterministic_checks(
             questions=questions,
             existing_questions=existing_questions,
@@ -81,6 +90,24 @@ class QuestionValidationService:
             "valid_questions": valid_questions,
             "failed_questions": failed_questions,
         }
+
+    def _base_validation_result(
+        self,
+        questions: list[dict[str, Any]],
+    ) -> QuestionValidationResult:
+        return QuestionValidationResult(
+            validation_result=True,
+            validation_feedback=[
+                QuestionValidationFeedback(
+                    question_index=index,
+                    is_valid=True,
+                    feedback=[],
+                )
+                for index in range(len(questions))
+            ],
+            valid_question_indices=list(range(len(questions))),
+            failed_question_indices=[],
+        )
 
     def _apply_deterministic_checks(
         self,

@@ -1,9 +1,12 @@
 from assessment_engine.graph.state import AssessmentState
-
+import logging
 
 MAX_BLUEPRINT_RETRIES = 3
 MAX_QUESTION_RETRIES = 3
 
+
+
+logger = logging.getLogger("ai-service")
 
 def route_blueprint_validation(
     state: AssessmentState
@@ -18,11 +21,12 @@ def route_blueprint_validation(
     )
 
     if retry_count >= MAX_BLUEPRINT_RETRIES:
-        return "failed"
+        logger.warning(
+            "Blueprint validation failed after maximum retries. Continuing with best available blueprint."
+        )
+        return "valid"
 
     return "retry"
-
-
 def route_after_question_retrieval(
     state: AssessmentState
 ) -> str:

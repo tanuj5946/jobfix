@@ -11,9 +11,20 @@ export interface SubmitAnswerPayload {
   candidateAnswer: string;
 }
 
+export interface SubmitAssessmentPayload {
+  answers: Array<{
+    question_id: number;
+    candidate_answer: string;
+  }>;
+}
+
 export const assessmentsApi = {
   create: async (payload: CreateAssessmentPayload): Promise<Assessment & { questions: AssessmentQuestion[] }> => {
-    const { data } = await apiClient.post<ApiResponse<Assessment & { questions: AssessmentQuestion[] }>>('/assessments', payload);
+    const { data } = await apiClient.post<ApiResponse<Assessment & { questions: AssessmentQuestion[] }>>(
+      '/assessments',
+      payload,
+      { timeout: 180_000 },
+    );
     return data.data;
   },
 
@@ -31,8 +42,8 @@ export const assessmentsApi = {
     await apiClient.post(`/assessments/${assessmentId}/answers`, payload);
   },
 
-  submitAll: async (assessmentId: number): Promise<AssessmentResult> => {
-    const { data } = await apiClient.post<ApiResponse<AssessmentResult>>(`/assessments/${assessmentId}/submit`);
+  submitAll: async (assessmentId: number, payload: SubmitAssessmentPayload): Promise<AssessmentResult> => {
+    const { data } = await apiClient.post<ApiResponse<AssessmentResult>>(`/assessments/${assessmentId}/submit`, payload);
     return data.data;
   },
 

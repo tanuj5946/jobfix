@@ -17,13 +17,12 @@ Secondary Skills:
 Missing Core Skills:
 {missing_core_skills}
 
-Create an assessment containing exactly 15 questions.
+Create an assessment containing exactly 25 questions.
 
 Target question type distribution:
 
-- 10 MCQ questions
-- 2 coding questions
-- 3 conceptual questions
+- 20 MCQ questions
+- 5 conceptual questions
 
 Difficulty distribution should approximately be:
 
@@ -35,7 +34,7 @@ Rules:
 
 - Allocate more questions to skills with higher importance weights.
 - Do not include skills that are not present in the skill weights.
-
+- Only use mcq and conceptual question types. Do not include coding questions.
 - Conceptual questions should test technical understanding and reasoning.
 - MCQs should test technical knowledge and applied understanding.
 - Missing core skills should be tested, but should not dominate the assessment.
@@ -45,4 +44,34 @@ Rules:
 - The total number of MCQs must be exactly 20.
 - The total number of conceptual questions must be exactly 5.
 
+{blueprint_feedback}
+
 Provide a concise blueprint summary.
+Return only valid JSON matching the structured fields:
+assessment_name, total_questions, skill_distribution, and blueprint_summary.
+skill_distribution must be a JSON array of skill objects. Do not return
+skill_distribution as a JSON object/dictionary.
+
+Example JSON shape:
+{{
+  "assessment_name": "Backend Developer Assessment",
+  "total_questions": 25,
+  "skill_distribution": [
+    {{
+      "skill": "Python",
+      "requirements": [
+        {{
+          "question_type": "mcq",
+          "difficulty": "easy",
+          "count": 3
+        }},
+        {{
+          "question_type": "conceptual",
+          "difficulty": "medium",
+          "count": 1
+        }}
+      ]
+    }}
+  ],
+  "blueprint_summary": "Blueprint prioritizes role-core skills."
+}}

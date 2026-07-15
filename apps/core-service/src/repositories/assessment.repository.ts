@@ -22,55 +22,108 @@ export class AssessmentRepository {
     questions: StoreAssessmentQuestion[],
     metadata?: Prisma.InputJsonValue,
   ) {
-    return prisma.$transaction(async tx => {
-      const assessment = await tx.assessment.create({
-        data: {
-          candidateId,
-          assessmentName: title,
-          targetRole: role,
-          status: 'in_progress',
-          startedAt: new Date(),
-          assessmentMetadataJson: metadata ?? Prisma.JsonNull,
-        },
+    const skillNames = this.uniqueSkillNames(
+      questions.map(question => question.skill),
+    );
+
+    if (skillNames.length) {
+      await prisma.skill.createMany({
+        data: skillNames.map(name => ({ name })),
+        skipDuplicates: true,
       });
+    }
 
-      const skillIds = new Set<number>();
+    const skills = await prisma.skill.findMany({
+      where: { name: { in: skillNames } },
+      select: { id: true, name: true },
+    });
+    const skillIdByName = new Map(
+      skills.map(skill => [skill.name, skill.id]),
+    );
 
-      for (const question of questions) {
-        const skill = await tx.skill.upsert({
-          where: { name: question.skill },
-          update: {},
-          create: { name: question.skill },
-        });
-        skillIds.add(skill.id);
-
-        await tx.assessmentQuestion.create({
+    const assessmentId = await prisma.$transaction(
+      async tx => {
+        const assessment = await tx.assessment.create({
           data: {
-            assessmentId: assessment.id,
-            skillId: skill.id,
-            questionText: question.question_text ?? question.question ?? '',
-            questionType: question.question_type,
-            difficulty: question.difficulty ?? undefined,
-            optionsJson: question.options as Prisma.InputJsonValue,
-            expectedAnswer: question.correct_answer ?? undefined,
-            rubric: this.rubricToString(question.rubric),
-            marks: question.marks ?? (question.question_type === 'conceptual' ? 2 : 1),
-            generatedByAi: question.question_id == null,
+            candidateId,
+            assessmentName: title,
+            targetRole: role,
+            status: 'in_progress',
+            startedAt: new Date(),
+            assessmentMetadataJson: metadata ?? Prisma.JsonNull,
           },
         });
-      }
 
-      for (const skillId of skillIds) {
+        const questionRows = questions.map(question => {
+          const skillName = this.normalizeSkillName(question.skill);
+          const skillId = skillIdByName.get(skillName);
+          if (!skillId) {
+            throw new Error(`Unable to resolve skill ID for "${question.skill}"`);
+          }
+
+          return {
+            assessmentId: assessment.id,
+            skillId,
+            questionText:
+              question.question_text ??
+              question.question ??
+              '',
+            questionType: question.question_type,
+            difficulty: question.difficulty ?? undefined,
+            optionsJson:
+              question.options as Prisma.InputJsonValue,
+            expectedAnswer:
+              question.correct_answer ?? undefined,
+            rubric: this.rubricToString(question.rubric),
+            marks:
+              question.marks ??
+              (question.question_type === 'conceptual'
+                ? 2
+                : 1),
+            generatedByAi:
+              question.question_id == null,
+          };
+        });
+
+        if (questionRows.length) {
+          await tx.assessmentQuestion.createMany({
+            data: questionRows,
+          });
+        }
+
         await tx.assessmentSkill.createMany({
-          data: [{ assessmentId: assessment.id, skillId }],
+          data: Array.from(new Set(questionRows.map(question => question.skillId))).map(
+            skillId => ({
+              assessmentId: assessment.id,
+              skillId,
+            }),
+          ),
           skipDuplicates: true,
         });
-      }
 
-      return tx.assessment.findUnique({
-        where: { id: assessment.id },
-        include: { questions: true, skills: { include: { skill: true } } },
-      });
+        return assessment.id;
+      },
+      {
+        timeout: 60000,
+      },
+    );
+
+    return prisma.assessment.findUnique({
+      where: {
+        id: assessmentId,
+      },
+      include: {
+        questions: {
+          include: {
+            skill: true,
+          },
+        },
+        skills: {
+          include: {
+            skill: true,
+          },
+        },
+      },
     });
   }
 
@@ -140,6 +193,20 @@ export class AssessmentRepository {
     if (rubric == null) return undefined;
     if (typeof rubric === 'string') return rubric;
     return JSON.stringify(rubric);
+  }
+
+  private uniqueSkillNames(skillNames: string[]) {
+    return Array.from(
+      new Set(
+        skillNames
+          .map(skillName => skillName.trim())
+          .filter(Boolean),
+      ),
+    );
+  }
+
+  private normalizeSkillName(skillName: string) {
+    return skillName.trim();
   }
 }
 

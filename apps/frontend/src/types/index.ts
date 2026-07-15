@@ -116,10 +116,11 @@ export interface AssessmentQuestion {
   id: number;
   assessmentId: number;
   skillId: number;
+  skill?: Skill;
   questionText: string;
   questionType: QuestionType;
   difficulty: Difficulty | null;
-  optionsJson: MCQOption[] | null;   // MCQ only
+  optionsJson: Array<MCQOption | string> | null;   // MCQ only
   expectedAnswer: string | null;
   rubric: string | null;
   testCasesJson: TestCase[] | null;  // coding only

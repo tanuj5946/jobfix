@@ -24,7 +24,7 @@ export const getAssessmentById = asyncHandler(async (req: Request, res: Response
 
   const assessment = await prisma.assessment.findUnique({
     where: { id },
-    include: { questions: true, skills: { include: { skill: true } }, result: true },
+    include: { questions: { include: { skill: true } }, skills: { include: { skill: true } }, result: true },
   });
 
   if (!assessment) {
@@ -64,12 +64,26 @@ export const submitAssessment = asyncHandler(async (req: Request, res: Response)
       answers ?? [],
     );
     res.json({ success: true, message: 'Assessment submitted', data: result });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error instanceof Error ? error.message : 'Assessment submission failed',
-    });
+  }catch (error) {
+
+  console.error("\n========== CREATE ASSESSMENT ERROR ==========");
+
+  console.error(error);
+
+  if (error instanceof Error) {
+    console.error(error.stack);
   }
+
+  console.error("=============================================\n");
+
+  res.status(400).json({
+    success: false,
+    message:
+      error instanceof Error
+        ? error.message
+        : "Assessment creation failed",
+  });
+}
 });
 
 export const getAssessmentResult = asyncHandler(async (req: Request, res: Response) => {

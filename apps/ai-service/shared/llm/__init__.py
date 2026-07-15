@@ -1,3 +1,3 @@
-from .model import get_llm
+from .model import get_llm, get_structured_llm
 
-__all__ = ["get_llm"]
+__all__ = ["get_llm", "get_structured_llm"]

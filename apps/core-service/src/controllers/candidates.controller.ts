@@ -2,7 +2,6 @@ import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { asyncHandler } from '../utils/asyncHandler';
-import { aiServiceClient } from '../services/aiServiceClient';
 import { resumeService } from '../services/resume.service';
 import { candidateService } from '../services/candidate.service';
 import { assessmentService } from '../services/assessment.service';
@@ -52,64 +51,13 @@ export const updateMyProfile = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const uploadResume = asyncHandler(async (req: Request, res: Response) => {
-  const file = req.file;
-  if (!file) {
-    res.status(400).json({ success: false, message: 'No file uploaded' });
-    return;
-  }
-
-  const parsed = await aiServiceClient.parseResume(
-    file.buffer,
-    file.mimetype,
-    file.originalname,
-  );
-
-  const profile = await prisma.candidateProfile.upsert({
-    where: { userId: req.user!.userId },
-    update: {
-      parsedResumeJson: parsed as unknown as Prisma.InputJsonValue,
-      targetRole: parsed.target_role_guess ?? undefined,
-    },
-    create: {
-      userId: req.user!.userId,
-      parsedResumeJson: parsed as unknown as Prisma.InputJsonValue,
-      targetRole: parsed.target_role_guess ?? undefined,
-    },
-  });
-
-  for (const parsedSkill of parsed.skills) {
-    const skill = await prisma.skill.upsert({
-      where: { name: parsedSkill.name },
-      update: {},
-      create: { name: parsedSkill.name },
-    });
-
-    await prisma.candidateSkill.upsert({
-      where: {
-        candidateId_skillId: { candidateId: profile.id, skillId: skill.id },
-      },
-      update: { parseConfidence: parsedSkill.confidence, source: 'auto_detected' },
-      create: {
-        candidateId: profile.id,
-        skillId: skill.id,
-        source: 'auto_detected',
-        parseConfidence: parsedSkill.confidence,
-      },
-    });
-  }
-
-  const detectedSkills = await prisma.candidateSkill.findMany({
-    where: { candidateId: profile.id },
-    include: { skill: true },
-    orderBy: { skill: { name: 'asc' } },
-  });
+  const data = await resumeService.uploadAndParseResume(req.user!.userId, req.file!);
 
   res.json({
     success: true,
     data: {
-      parsed,
-      profile,
-      skills: detectedSkills,
+      ...data,
+      skills: data.profile?.candidateSkills ?? [],
     },
   });
 });

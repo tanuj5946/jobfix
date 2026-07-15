@@ -20,10 +20,11 @@ Rules:
 
 - Weights must represent importance for the selected target role.
 - All weights combined must equal 1.0.
-- Relevant candidate skills should receive approximately 70% of total assessment weight.
+- Only relevant candidate skills and missing core role skills should receive
+  assessment weight.
+- Relevant candidate skills should receive approximately 75% of total assessment weight.
 - Missing core role skills should receive approximately 25% of total assessment weight.
-- Secondary skills should receive approximately 5% of total assessment weight.
-- Secondary skills may receive zero weight when they do not meaningfully verify competency for the target role.
+- Secondary skills are context only and must not receive assessment weight.
 - Adjust these percentages slightly when technically necessary.
 - Do not include irrelevant skills.
 - Do not introduce new skills.
@@ -31,3 +32,24 @@ Rules:
 - The candidate is a fresher.
 - Provide a short reason for each skill weight.
 - Provide a concise weighting summary.
+- Return only valid JSON matching the structured fields:
+  skill_weights and weighting_summary.
+- skill_weights must be a JSON array of objects. Do not return skill_weights
+  as a JSON object/dictionary.
+
+Example JSON shape:
+{{
+  "skill_weights": [
+    {{
+      "skill": "Python",
+      "weight": 0.35,
+      "reason": "Core language for the selected role."
+    }},
+    {{
+      "skill": "SQL",
+      "weight": 0.2,
+      "reason": "Important for data access fundamentals."
+    }}
+  ],
+  "weighting_summary": "Weights prioritize role-core skills and missing fundamentals."
+}}

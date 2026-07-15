@@ -95,8 +95,7 @@ def build_assessment_graph():
         route_blueprint_validation,
         {
             "valid": "question_retrieval",
-            "retry": "blueprint_retry",
-            "failed": END
+            "retry": "blueprint_retry"
         }
     )
 

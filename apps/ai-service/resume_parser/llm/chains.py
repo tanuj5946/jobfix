@@ -1,6 +1,7 @@
 from langchain_core.prompts import PromptTemplate
 
 from resume_parser.schemas.resume_schema import ResumeSchema
+from shared.llm import get_structured_llm
 
 
 def build_resume_chain(
@@ -21,7 +22,7 @@ def build_resume_chain(
 
         prompt
 
-        | llm.with_structured_output(
+        | get_structured_llm(
 
             ResumeSchema
 

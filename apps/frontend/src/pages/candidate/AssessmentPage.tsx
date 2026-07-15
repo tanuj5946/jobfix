@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { assessmentsApi } from '../../api/assessments';
 import { candidatesApi } from '../../api/candidates';
 import type { Assessment, AssessmentQuestion, CandidateProfile, CandidateSkill } from '../../types';
@@ -20,6 +21,17 @@ export function AssessmentPage() {
     if (!assessment) return 0;
     return assessment.questions.filter(question => !answers[question.id]?.trim()).length;
   }, [answers, assessment]);
+
+  const testedSkillNames = useMemo(() => {
+    if (!assessment) return [];
+
+    const candidateSkillNamesById = new Map(skills.map(item => [item.skillId, item.skill.name]));
+    const names = assessment.questions
+      .map(question => question.skill?.name ?? candidateSkillNamesById.get(question.skillId))
+      .filter((name): name is string => Boolean(name));
+
+    return Array.from(new Set(names));
+  }, [assessment, skills]);
 
   useEffect(() => {
     let ignore = false;
@@ -58,8 +70,10 @@ export function AssessmentPage() {
             });
 
         if (!ignore) setAssessment(nextAssessment);
-      } catch {
-        if (!ignore) setError('Could not prepare your assessment. Please try again.');
+      } catch (err) {
+        if (!ignore) {
+          setError(getErrorMessage(err, 'Could not prepare your assessment. Please try again.'));
+        }
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -82,16 +96,15 @@ export function AssessmentPage() {
     setSubmitting(true);
     setError('');
     try {
-      for (const question of assessment.questions) {
-        await assessmentsApi.submitAnswer(assessment.id, {
-          questionId: question.id,
-          candidateAnswer: answers[question.id],
-        });
-      }
-      await assessmentsApi.submitAll(assessment.id);
+      await assessmentsApi.submitAll(assessment.id, {
+        answers: assessment.questions.map(question => ({
+          question_id: question.id,
+          candidate_answer: answers[question.id],
+        })),
+      });
       navigate('/candidate/dashboard', { replace: true });
-    } catch {
-      setError('Could not submit the assessment. Please try again.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not submit the assessment. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -118,8 +131,8 @@ export function AssessmentPage() {
               {profile?.targetRole ?? 'General Software Developer'}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {skills.map(item => (
-                <span key={item.id} className="badge bg-gray-100 text-gray-700">{item.skill.name}</span>
+              {testedSkillNames.map(name => (
+                <span key={name} className="badge bg-gray-100 text-gray-700">{name}</span>
               ))}
             </div>
           </section>
@@ -136,19 +149,23 @@ export function AssessmentPage() {
 
               {question.optionsJson?.length ? (
                 <div className="mt-4 space-y-2">
-                  {question.optionsJson.map(option => (
-                    <label key={option.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
+                  {question.optionsJson.map((option, optionIndex) => {
+                    const normalized = normalizeOption(option, optionIndex);
+
+                    return (
+                    <label key={normalized.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
                       <input
                         type="radio"
                         name={`question-${question.id}`}
-                        value={option.id}
-                        checked={answers[question.id] === option.id}
+                        value={normalized.id}
+                        checked={answers[question.id] === normalized.id}
                         onChange={event => setAnswer(question.id, event.target.value)}
                         className="h-4 w-4 border-gray-300 text-brand-600 focus:ring-brand-500"
                       />
-                      <span>{option.id}. {option.text}</span>
+                      <span>{normalized.id}. {normalized.text}</span>
                     </label>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <textarea
@@ -177,4 +194,26 @@ export function AssessmentPage() {
       ) : null}
     </div>
   );
+}
+
+function normalizeOption(option: { id: string; text: string } | string, index: number) {
+  if (typeof option !== 'string') return option;
+
+  return {
+    id: String.fromCharCode(65 + index),
+    text: option,
+  };
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (axios.isAxiosError(err)) {
+    if (err.code === 'ECONNABORTED') {
+      return 'Assessment generation is still running. Please wait a moment and try again.';
+    }
+
+    const message = err.response?.data?.message;
+    if (typeof message === 'string') return message;
+  }
+
+  return fallback;
 }

@@ -10,7 +10,8 @@ python-multipart>=0.0.9   # required for FastAPI file uploads
 # LLM / LangChain
 langchain>=0.3.0
 langchain-core>=0.3.0
-langchain-groq>=0.2.0
+langchain-groq>=0.3.8
+langgraph>=0.2.0
 
 # PDF / DOCX parsing
 pymupdf>=1.24.0           # fitz — PDF text extraction

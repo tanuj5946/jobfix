@@ -7,6 +7,13 @@ import { errorMiddleware } from './middleware/error.middleware';
 
 const app = express();
 
+// Prisma uses JavaScript bigint for BIGINT columns (for example,
+// assessment_results.attempt_id). JSON does not support bigint values, so
+// serialize identifiers as strings at the HTTP boundary.
+app.set('json replacer', (_key: string, value: unknown) =>
+  typeof value === 'bigint' ? value.toString() : value,
+);
+
 // ── Middleware ───────────────────────────────────────────────
 app.use(cors({
   origin: env.CORS_ORIGINS.split(',').map(o => o.trim()),
