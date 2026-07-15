@@ -10,7 +10,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "seed:admin": "ts-node src/scripts/seed-admin.ts",
+    "seed:skills": "ts-node src/scripts/seed-skills.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

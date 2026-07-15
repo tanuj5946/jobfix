@@ -47,6 +47,9 @@ from assessment_engine.services.question_validation_service import (
     QuestionValidationService,
 )
 from question_bank.repository import QuestionRepository
+from question_bank.generator.service import (
+    question_generator_service as question_bank_generator_service,
+)
 from question_bank.schemas import (
     BulkQuestionCreate,
     QuestionCreate,
@@ -162,6 +165,12 @@ class ParsedResumeResponse(BaseModel):
     experience: list
     education: list
     summary: str | None
+
+
+class QuestionBankSeedRequest(BaseModel):
+    role: str = "Software Developer"
+    skills: list[str]
+    count_per_skill: int = 10
 
 
 def get_question_repository() -> QuestionRepository:
@@ -544,6 +553,33 @@ async def generate_questions(payload: QuestionGenerationRequest):
             status_code=500,
             detail=f"Question generation failed: {str(exc)}",
         )
+
+
+@app.post("/questions/seed")
+async def seed_question_bank(payload: QuestionBankSeedRequest):
+    """Generate and store question-bank questions for one or more skills."""
+    validate_text(payload.role, field_name="role")
+    validate_text_list(payload.skills, field_name="skills")
+    if not 1 <= payload.count_per_skill <= 25:
+        raise ValidationError("count_per_skill must be between 1 and 25")
+
+    results = []
+    for skill in dict.fromkeys(payload.skills):
+        stats = await asyncio.to_thread(
+            question_bank_generator_service.generate,
+            role=payload.role,
+            skill=skill,
+            count=payload.count_per_skill,
+        )
+        results.append({"skill": skill, **stats})
+
+    return {
+        "role": payload.role,
+        "results": results,
+        "generated": sum(item["generated"] for item in results),
+        "stored": sum(item["stored"] for item in results),
+        "failed": sum(item["failed"] for item in results),
+    }
 
 
 @app.post("/questions/validate")

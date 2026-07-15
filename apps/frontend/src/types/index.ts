@@ -3,7 +3,7 @@
 // ============================================================
 
 // ---- Auth ----
-export type UserRole = 'candidate' | 'recruiter';
+export type UserRole = 'candidate' | 'recruiter' | 'admin';
 
 export interface User {
   id: number;

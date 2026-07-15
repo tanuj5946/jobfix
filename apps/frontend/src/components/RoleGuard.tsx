@@ -16,7 +16,11 @@ export function RoleGuard({ allowedRole }: RoleGuardProps) {
   if (!user) return <Navigate to="/login" replace />;
 
   if (user.role !== allowedRole) {
-    const home = user.role === 'candidate' ? '/candidate/dashboard' : '/recruiter/dashboard';
+    const home = user.role === 'candidate'
+      ? '/candidate/dashboard'
+      : user.role === 'recruiter'
+        ? '/recruiter/dashboard'
+        : '/admin';
     return <Navigate to={home} replace />;
   }
 

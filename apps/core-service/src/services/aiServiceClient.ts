@@ -76,6 +76,14 @@ export interface ImprovementPlan {
   skill_gaps: SkillGap[];
 }
 
+export interface QuestionBankSeedResult {
+  role: string;
+  results: Array<{ skill: string; generated: number; stored: number; failed: number }>;
+  generated: number;
+  stored: number;
+  failed: number;
+}
+
 class AiServiceClient {
   private readonly http: AxiosInstance;
 
@@ -198,6 +206,20 @@ class AiServiceClient {
   ): Promise<AiAssessmentQuestion[]> {
     const generated = await this.createAssessment(skillList, targetRole);
     return generated.final_assessment?.questions ?? [];
+  }
+
+  async seedQuestionBank(
+    role: string,
+    skills: string[],
+    countPerSkill: number,
+  ): Promise<QuestionBankSeedResult> {
+    return this.requestWithRetry<QuestionBankSeedResult>(() =>
+      this.http.post('/questions/seed', {
+        role,
+        skills,
+        count_per_skill: countPerSkill,
+      }, { timeout: 600_000 }),
+    );
   }
 
   private async requestWithRetry<T>(

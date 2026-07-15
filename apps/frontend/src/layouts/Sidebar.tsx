@@ -19,8 +19,16 @@ const recruiterLinks = [
   { to: '/recruiter/jobs/new', label: 'Post a Job', icon: '+' },
 ];
 
+const adminLinks = [
+  { to: '/admin', label: 'Administration', icon: 'A' },
+];
+
 export function Sidebar({ user }: SidebarProps) {
-  const links = user.role === 'candidate' ? candidateLinks : recruiterLinks;
+  const links = user.role === 'candidate'
+    ? candidateLinks
+    : user.role === 'recruiter'
+      ? recruiterLinks
+      : adminLinks;
 
   return (
     <div className="flex h-full flex-col border-r border-gray-200 bg-white">
@@ -53,7 +61,9 @@ export function Sidebar({ user }: SidebarProps) {
           className={`badge text-xs ${
             user.role === 'candidate'
               ? 'bg-brand-100 text-brand-700'
-              : 'bg-emerald-100 text-emerald-700'
+              : user.role === 'recruiter'
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-violet-100 text-violet-700'
           }`}
         >
           {user.role}

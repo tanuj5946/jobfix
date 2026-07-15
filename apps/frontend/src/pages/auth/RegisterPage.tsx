@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/auth';
-import type { UserRole } from '../../types';
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    name: '', email: '', password: '', role: 'candidate' as UserRole, companyName: '',
+    name: '', email: '', password: '', role: 'candidate' as 'candidate' | 'recruiter', companyName: '',
   });
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);

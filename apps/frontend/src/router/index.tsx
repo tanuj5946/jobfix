@@ -22,6 +22,7 @@ import { RecruiterDashboardPage } from '../pages/recruiter/DashboardPage';
 import { PostJobPage } from '../pages/recruiter/PostJobPage';
 import { RankedCandidatesPage } from '../pages/recruiter/RankedCandidatesPage';
 import { CandidateDetailPage } from '../pages/recruiter/CandidateDetailPage';
+import { AdminPage } from '../pages/admin/AdminPage';
 
 // Shared
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -68,6 +69,13 @@ export const router = createBrowserRouter([
           { path: 'jobs/new',                   element: <PostJobPage /> },
           { path: 'jobs/:jobId/candidates',     element: <RankedCandidatesPage /> },
           { path: 'candidates/:candidateId',    element: <CandidateDetailPage /> },
+        ],
+      },
+      {
+        path: 'admin',
+        element: <RoleGuard allowedRole="admin" />,
+        children: [
+          { index: true, element: <AdminPage /> },
         ],
       },
     ],

@@ -7,6 +7,7 @@ import skillsRoutes      from './skills.routes';
 import assessmentsRoutes from './assessments.routes';
 import matchesRoutes     from './matches.routes';
 import careerCoachRoutes from './careerCoach.routes';
+import adminRoutes       from './admin.routes';
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use('/skills',       skillsRoutes);
 router.use('/assessments',  assessmentsRoutes);
 router.use('/matches',      matchesRoutes);
 router.use('/career-coach', careerCoachRoutes);
+router.use('/admin',        adminRoutes);
 
 export default router;

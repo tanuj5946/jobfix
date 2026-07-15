@@ -17,7 +17,7 @@ datasource db {
 
 model User {
   id           Int      @id @default(autoincrement())
-  role         String   // 'candidate' | 'recruiter'
+  role         String   // 'candidate' | 'recruiter' | 'admin'
   name         String   @db.VarChar(150)
   email        String   @unique @db.VarChar(255)
   passwordHash String   @map("password_hash")

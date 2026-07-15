@@ -17,7 +17,14 @@ export function LoginPage() {
       const { token, user } = await authApi.login({ email, password });
       localStorage.setItem('sf_token', token);
       localStorage.setItem('sf_user', JSON.stringify(user));
-      navigate(user.role === 'candidate' ? '/candidate/dashboard' : '/recruiter/dashboard', { replace: true });
+      navigate(
+        user.role === 'candidate'
+          ? '/candidate/dashboard'
+          : user.role === 'recruiter'
+            ? '/recruiter/dashboard'
+            : '/admin',
+        { replace: true },
+      );
     } catch {
       setError('Invalid email or password.');
     } finally {
