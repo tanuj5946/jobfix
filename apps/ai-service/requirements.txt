@@ -1,4 +1,4 @@
-# SmartFresher ai-service dependencies
+# JobFix ai-service dependencies
 # Install with: pip install -r requirements.txt
 # (activate venv first: venv\Scripts\activate)
 

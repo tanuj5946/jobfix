@@ -8,6 +8,8 @@ import assessmentsRoutes from './assessments.routes';
 import matchesRoutes     from './matches.routes';
 import careerCoachRoutes from './careerCoach.routes';
 import adminRoutes       from './admin.routes';
+import companiesRoutes   from './companies.routes';
+import applicationsRoutes from './applications.routes';
 
 const router = Router();
 
@@ -21,5 +23,7 @@ router.use('/assessments',  assessmentsRoutes);
 router.use('/matches',      matchesRoutes);
 router.use('/career-coach', careerCoachRoutes);
 router.use('/admin',        adminRoutes);
+router.use('/companies',    companiesRoutes);
+router.use('/applications', applicationsRoutes);
 
 export default router;

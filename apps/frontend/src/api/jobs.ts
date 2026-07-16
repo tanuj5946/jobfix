@@ -1,9 +1,9 @@
 import { apiClient } from './client';
-import type { ApiResponse, Job, PaginatedResponse } from '../types';
+import type { ApiResponse, Job, PaginatedResponse, RecruiterDashboard } from '../types';
 
 export interface CreateJobPayload {
   title: string;
-  description?: string;
+  description: string;
   location?: string;
   workMode?: Job['workMode'];
   experienceLevel?: Job['experienceLevel'];
@@ -19,9 +19,19 @@ export interface ListJobsParams {
 }
 
 export const jobsApi = {
+  recruiterDashboard: async (): Promise<RecruiterDashboard> => {
+    const { data } = await apiClient.get<ApiResponse<RecruiterDashboard>>('/recruiters/dashboard');
+    return data.data;
+  },
+
   list: async (params?: ListJobsParams): Promise<PaginatedResponse<Job>> => {
     const { data } = await apiClient.get<PaginatedResponse<Job>>('/jobs', { params });
     return data;
+  },
+
+  listMine: async (): Promise<Job[]> => {
+    const { data } = await apiClient.get<ApiResponse<Job[]>>('/jobs/mine');
+    return data.data;
   },
 
   getById: async (id: number): Promise<Job> => {

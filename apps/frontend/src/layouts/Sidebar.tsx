@@ -10,6 +10,8 @@ const candidateLinks = [
   { to: '/candidate/skills', label: 'Skill Selection', icon: '2' },
   { to: '/candidate/assessment', label: 'Assessment', icon: '3' },
   { to: '/candidate/dashboard', label: 'Dashboard', icon: '4' },
+  { to: '/candidate/jobs', label: 'Browse Jobs', icon: 'J' },
+  { to: '/candidate/applications', label: 'Applications', icon: 'A' },
   { to: '/candidate/profile', label: 'Verified Profile', icon: 'P' },
   { to: '/candidate/career-coach', label: 'Career Coach', icon: 'C' },
 ];
@@ -17,6 +19,7 @@ const candidateLinks = [
 const recruiterLinks = [
   { to: '/recruiter/dashboard', label: 'Dashboard', icon: 'D' },
   { to: '/recruiter/jobs/new', label: 'Post a Job', icon: '+' },
+  { to: '/recruiter/company', label: 'Company', icon: 'C' },
 ];
 
 const adminLinks = [
@@ -33,7 +36,7 @@ export function Sidebar({ user }: SidebarProps) {
   return (
     <div className="flex h-full flex-col border-r border-gray-200 bg-white">
       <div className="flex h-16 items-center border-b border-gray-200 px-6">
-        <span className="text-lg font-bold text-brand-600">SmartFresher</span>
+        <span className="text-lg font-bold text-brand-600">JobFix</span>
       </div>
 
       <nav className="flex-1 space-y-0.5 px-3 py-4">

@@ -25,6 +25,11 @@ export const authApi = {
     return data.data;
   },
 
+  loginRecruiter: async (payload: LoginPayload): Promise<AuthResponse> => {
+    const { data } = await apiClient.post<ApiResponse<AuthResponse>>('/auth/recruiter/login', payload);
+    return data.data;
+  },
+
   register: async (payload: RegisterPayload): Promise<AuthResponse> => {
     const { data } = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', payload);
     return data.data;

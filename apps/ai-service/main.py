@@ -1,5 +1,5 @@
 """
-SmartFresher — ai-service
+JobFix — ai-service
 FastAPI application entry point.
 
 Currently implemented:
@@ -25,6 +25,10 @@ from resume_parser import ResumeParser
 from resume_parser.schemas.resume_schema import ExtractedSkill
 from assessment_engine.graph.assessment_graph import build_assessment_graph
 from assessment_engine.graph.evaluation_graph import build_evaluation_graph
+from assessment_engine.graph.job_analysis_graph import build_job_analysis_graph
+from assessment_engine.schemas.job_description_analysis_schema import (
+    JobDescriptionAnalysisRequest,
+)
 from assessment_engine.schemas.assessment_submission_schema import (
     AssessmentCreateRequest,
     AssessmentEvaluateRequest,
@@ -70,7 +74,7 @@ logger = logging.getLogger("ai-service")
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="SmartFresher AI Service",
+    title="JobFix AI Service",
     description="AI-powered resume parsing, skill extraction, and assessment engine.",
     version="0.1.0",
 )
@@ -136,6 +140,7 @@ parser = ResumeParser()
 embedding_service = EmbeddingService()
 assessment_graph = build_assessment_graph()
 evaluation_graph = build_evaluation_graph()
+job_analysis_graph = build_job_analysis_graph()
 assessment_service = AssessmentService(
     assessment_graph=assessment_graph
 )
@@ -377,6 +382,26 @@ async def generate_assessment(payload: AssessmentGenerationRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Assessment generation failed: {str(exc)}",
+        )
+
+
+@app.post("/jobs/analyze-description")
+async def analyze_job_description(payload: JobDescriptionAnalysisRequest):
+    """Extract structured recruiter-facing requirements from a stored job description."""
+    try:
+        validate_text(payload.title, field_name="title")
+        validate_text(payload.description, field_name="description")
+        return await asyncio.to_thread(
+            job_analysis_graph.invoke,
+            {"title": payload.title, "description": payload.description},
+        )
+    except AIServiceError:
+        raise
+    except Exception as exc:
+        logger.error("Job description analysis failed: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Job description analysis failed: {str(exc)}",
         )
 
 

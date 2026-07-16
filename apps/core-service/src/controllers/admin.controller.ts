@@ -2,6 +2,8 @@ import { z } from 'zod';
 import type { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { aiServiceClient } from '../services/aiServiceClient';
+import { adminOverviewService } from '../services/adminOverview.service';
+import { analyticsService } from '../services/analytics.service';
 import { asyncHandler } from '../utils/asyncHandler';
 
 export const SeedQuestionBankSchema = z.object({
@@ -60,4 +62,22 @@ export const seedQuestionBank = asyncHandler(async (req: Request, res: Response)
     payload.countPerSkill,
   );
   res.json({ success: true, data: result });
+});
+
+export const getOverview = asyncHandler(async (_req: Request, res: Response) => {
+  res.json({ success: true, data: await adminOverviewService.getOverview() });
+});
+
+export const getAnalyticsDashboard = asyncHandler(async (_req: Request, res: Response) => {
+  res.json({ success: true, data: await analyticsService.getDashboard() });
+});
+
+export const getAnalyticsSummary = asyncHandler(async (_req: Request, res: Response) => {
+  res.json({ success: true, data: await analyticsService.getSummary() });
+});
+
+export const getMostRequestedSkills = asyncHandler(async (req: Request, res: Response) => {
+  const requestedLimit = Number(req.query.limit);
+  const limit = Number.isInteger(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, 50) : 10;
+  res.json({ success: true, data: await analyticsService.getMostRequestedSkills(limit) });
 });

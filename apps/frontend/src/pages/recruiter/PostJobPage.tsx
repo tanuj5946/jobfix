@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { jobsApi } from '../../api/jobs';
 import type { CreateJobPayload } from '../../api/jobs';
 
@@ -9,53 +10,70 @@ export function PostJobPage() {
     title: '', description: '', location: '', workMode: 'remote', experienceLevel: 'fresher',
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError] = useState('');
 
-  const set = (field: string) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-      setForm(f => ({ ...f, [field]: e.target.value }));
+  const set = (field: keyof typeof form) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setForm((current) => ({ ...current, [field]: event.target.value }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError('');
+
     try {
-      const job = await jobsApi.create({ ...form, requiredSkills: [] });
-      navigate(`/recruiter/jobs/${job.id}/candidates`);
-    } catch {
-      setError('Failed to create job. Please try again.');
+      await jobsApi.create({
+        ...form,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        location: form.location?.trim() || undefined,
+        requiredSkills: [],
+      });
+      navigate('/recruiter/dashboard', { replace: true });
+    } catch (cause) {
+      if (axios.isAxiosError(cause) && cause.response?.status === 409) {
+        setError('Create a company before posting a job.');
+      } else {
+        setError('Unable to store this job posting. Please review the details and try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">Post a New Job</h1>
-      <p className="mt-1 text-sm text-gray-500">Fill in the details and add required skills.</p>
+    <div className="max-w-3xl">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Create a job posting</h1>
+          <p className="mt-1 text-sm text-gray-500">Paste the job description to create a draft. JobFix automatically extracts the skills needed before it can be published.</p>
+        </div>
+        <Link to="/recruiter/company" className="text-sm font-medium text-brand-600 hover:text-brand-700">Manage company</Link>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 card p-8 max-w-2xl space-y-4">
+      <form onSubmit={handleSubmit} className="mt-6 card space-y-5 p-6">
         {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
         <div>
           <label htmlFor="job-title" className="mb-1 block text-sm font-medium text-gray-700">Job title</label>
-          <input id="job-title" type="text" required value={form.title} onChange={set('title')} className="input" placeholder="e.g. Backend Developer" />
+          <input id="job-title" type="text" required minLength={2} maxLength={200} value={form.title} onChange={set('title')} className="input" placeholder="Backend Developer" />
         </div>
         <div>
-          <label htmlFor="job-desc" className="mb-1 block text-sm font-medium text-gray-700">Description</label>
-          <textarea id="job-desc" rows={4} value={form.description} onChange={set('description')} className="input resize-none" placeholder="Role responsibilities and requirements…" />
+          <label htmlFor="job-desc" className="mb-1 block text-sm font-medium text-gray-700">Job description</label>
+          <textarea id="job-desc" required minLength={20} maxLength={20000} rows={12} value={form.description} onChange={set('description')} className="input resize-y" placeholder="Paste the complete role responsibilities, requirements, and qualifications here." />
+          <p className="mt-1 text-xs text-gray-500">At least 20 characters. JobFix stores the draft and sends the description for skill extraction.</p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="job-location" className="mb-1 block text-sm font-medium text-gray-700">Location</label>
-            <input id="job-location" type="text" value={form.location} onChange={set('location')} className="input" placeholder="Bangalore, India" />
+            <input id="job-location" type="text" value={form.location ?? ''} onChange={set('location')} className="input" placeholder="Bengaluru, India" />
           </div>
           <div>
             <label htmlFor="job-mode" className="mb-1 block text-sm font-medium text-gray-700">Work mode</label>
             <select id="job-mode" value={form.workMode ?? ''} onChange={set('workMode')} className="input">
               <option value="remote">Remote</option>
               <option value="hybrid">Hybrid</option>
-              <option value="onsite">Onsite</option>
+              <option value="onsite">On-site</option>
             </select>
           </div>
         </div>
@@ -67,9 +85,8 @@ export function PostJobPage() {
             <option value="3_plus_years">3+ years</option>
           </select>
         </div>
-        <p className="text-xs text-gray-400">Required skills selector coming soon.</p>
         <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? 'Creating…' : 'Create job posting'}
+          {loading ? 'Storing job…' : 'Store job draft'}
         </button>
       </form>
     </div>

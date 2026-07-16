@@ -12,9 +12,9 @@ router.use(authMiddleware);
 
 router.post('/',               requireRole('candidate'), createAssessment);
 router.get( '/me',             requireRole('candidate'), listMyAssessments);
-router.get( '/:id',                                      getAssessmentById);
+router.get( '/:id',               requireRole('candidate'), getAssessmentById);
 router.post('/:id/answers',    requireRole('candidate'), submitAnswer);
 router.post('/:id/submit',     requireRole('candidate'), submitAssessment);
-router.get( '/:id/result',                               getAssessmentResult);
+router.get( '/:id/result',        requireRole('candidate'), getAssessmentResult);
 
 export default router;

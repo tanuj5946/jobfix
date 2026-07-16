@@ -35,7 +35,7 @@ export function RegisterPage() {
       <div className="card w-full max-w-md p-8">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-          <p className="mt-1 text-sm text-gray-500">Join SmartFresher today</p>
+          <p className="mt-1 text-sm text-gray-500">Join JobFix today</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

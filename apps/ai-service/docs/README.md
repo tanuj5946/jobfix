@@ -1,4 +1,4 @@
-# SmartFresher AI Service
+# JobFix AI Service
 
 The AI service owns resume parsing, assessment generation, question retrieval/generation, answer evaluation, recruiter reports, and learning recommendations.
 

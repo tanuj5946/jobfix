@@ -2,9 +2,9 @@ import { prisma } from '../config/database';
 import { hashPassword } from '../utils/password';
 import { seedSkillCatalog } from './skill-catalog';
 
-const email = process.env.ADMIN_EMAIL ?? 'admin@smartfresher.local';
+const email = process.env.ADMIN_EMAIL ?? 'admin@jobfix.local';
 const password = process.env.ADMIN_PASSWORD ?? 'Admin@12345';
-const name = process.env.ADMIN_NAME ?? 'SmartFresher Admin';
+const name = process.env.ADMIN_NAME ?? 'JobFix Admin';
 
 async function main() {
   await seedSkillCatalog();

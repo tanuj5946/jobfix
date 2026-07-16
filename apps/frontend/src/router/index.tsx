@@ -16,12 +16,15 @@ import { AssessmentPage } from '../pages/candidate/AssessmentPage';
 import { AssessmentResultsPage } from '../pages/candidate/AssessmentResultsPage';
 import { VerifiedProfilePage } from '../pages/candidate/VerifiedProfilePage';
 import { CareerCoachPage } from '../pages/candidate/CareerCoachPage';
+import { CandidateJobsPage } from '../pages/candidate/JobsPage';
+import { ApplicationsPage } from '../pages/candidate/ApplicationsPage';
 
 // Recruiter pages
 import { RecruiterDashboardPage } from '../pages/recruiter/DashboardPage';
 import { PostJobPage } from '../pages/recruiter/PostJobPage';
 import { RankedCandidatesPage } from '../pages/recruiter/RankedCandidatesPage';
 import { CandidateDetailPage } from '../pages/recruiter/CandidateDetailPage';
+import { CompanyPage } from '../pages/recruiter/CompanyPage';
 import { AdminPage } from '../pages/admin/AdminPage';
 
 // Shared
@@ -56,6 +59,8 @@ export const router = createBrowserRouter([
           { path: 'assessment/:id/results', element: <AssessmentResultsPage /> },
           { path: 'profile',           element: <VerifiedProfilePage /> },
           { path: 'career-coach',      element: <CareerCoachPage /> },
+          { path: 'jobs',              element: <CandidateJobsPage /> },
+          { path: 'applications',      element: <ApplicationsPage /> },
         ],
       },
 
@@ -67,8 +72,9 @@ export const router = createBrowserRouter([
           { index: true,                        element: <Navigate to="dashboard" replace /> },
           { path: 'dashboard',                  element: <RecruiterDashboardPage /> },
           { path: 'jobs/new',                   element: <PostJobPage /> },
-          { path: 'jobs/:jobId/candidates',     element: <RankedCandidatesPage /> },
-          { path: 'candidates/:candidateId',    element: <CandidateDetailPage /> },
+           { path: 'jobs/:jobId/candidates',     element: <RankedCandidatesPage /> },
+           { path: 'candidates/:candidateId',    element: <CandidateDetailPage /> },
+           { path: 'company',                     element: <CompanyPage /> },
         ],
       },
       {

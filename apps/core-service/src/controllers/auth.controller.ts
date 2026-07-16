@@ -67,27 +67,51 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
-export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body as z.infer<typeof LoginSchema>;
+const authenticateUser = async (
+  credentials: z.infer<typeof LoginSchema>,
+  requiredRole?: 'recruiter',
+) => {
+  const { email, password } = credentials;
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
-    return;
-  }
+  if (!user) return null;
 
   const valid = await comparePassword(password, user.passwordHash);
-  if (!valid) {
+  if (!valid || (requiredRole && user.role !== requiredRole)) return null;
+
+  const token = signToken({ userId: user.id, role: user.role });
+  return { token, user: buildUserResponse(user) };
+};
+
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  const authenticated = await authenticateUser(
+    req.body as z.infer<typeof LoginSchema>,
+  );
+
+  if (!authenticated) {
     res.status(401).json({ success: false, message: 'Invalid credentials' });
     return;
   }
 
-  const token = signToken({ userId: user.id, role: user.role });
+  res.json({ success: true, data: authenticated });
+});
 
-  res.json({
-    success: true,
-    data: { token, user: buildUserResponse(user) },
-  });
+/**
+ * Recruiter-specific entry point. It keeps JobFix's existing JWT payload and
+ * therefore works with the current auth middleware and recruiter role guard.
+ */
+export const loginRecruiter = asyncHandler(async (req: Request, res: Response) => {
+  const authenticated = await authenticateUser(
+    req.body as z.infer<typeof LoginSchema>,
+    'recruiter',
+  );
+
+  if (!authenticated) {
+    res.status(401).json({ success: false, message: 'Invalid recruiter credentials' });
+    return;
+  }
+
+  res.json({ success: true, data: authenticated });
 });
 
 export const getMe = asyncHandler(async (req: Request, res: Response) => {

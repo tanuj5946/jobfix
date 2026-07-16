@@ -21,6 +21,7 @@ export class AssessmentRepository {
     title: string,
     questions: StoreAssessmentQuestion[],
     metadata?: Prisma.InputJsonValue,
+    applicationId?: number,
   ) {
     const skillNames = this.uniqueSkillNames(
       questions.map(question => question.skill),
@@ -46,6 +47,7 @@ export class AssessmentRepository {
         const assessment = await tx.assessment.create({
           data: {
             candidateId,
+            applicationId,
             assessmentName: title,
             targetRole: role,
             status: 'in_progress',

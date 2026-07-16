@@ -84,6 +84,14 @@ export interface QuestionBankSeedResult {
   failed: number;
 }
 
+export interface JobDescriptionAnalysis {
+  required_skills: string[];
+  preferred_skills: string[];
+  education: string | null;
+  responsibilities: string[];
+  experience: string | null;
+}
+
 class AiServiceClient {
   private readonly http: AxiosInstance;
 
@@ -121,6 +129,15 @@ class AiServiceClient {
         target_role: targetRole,
         selected_skills: selectedSkills,
       }),
+    );
+  }
+
+  async analyzeJobDescription(
+    title: string,
+    description: string,
+  ): Promise<JobDescriptionAnalysis> {
+    return this.requestWithRetry<JobDescriptionAnalysis>(() =>
+      this.http.post('/jobs/analyze-description', { title, description }),
     );
   }
 

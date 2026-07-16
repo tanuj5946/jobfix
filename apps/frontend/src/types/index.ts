@@ -1,5 +1,5 @@
 // ============================================================
-// Shared TypeScript types — aligned to smartfresher_schema.sql
+// Shared TypeScript types — aligned to the JobFix Prisma schema.
 // ============================================================
 
 // ---- Auth ----
@@ -56,11 +56,52 @@ export interface ResumeUploadResult {
 export interface RecruiterProfile {
   id: number;
   userId: number;
-  companyName: string;
+  companyName: string | null;
   companyWebsite: string | null;
   industry: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Company {
+  id: number;
+  name: string;
+  website: string | null;
+  industry: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecruiterDashboard {
+  stats: {
+    activeJobs: number;
+    totalJobs: number;
+    matchesGenerated: number;
+    verifiedCandidates: number;
+  };
+  recentJobs: Array<{
+    id: number;
+    title: string;
+    status: JobStatus;
+    updatedAt: string;
+    matchCount: number;
+  }>;
+}
+
+export type CandidateRankingSort = 'overall' | 'latest' | 'resume_match' | 'assessment_score';
+
+export interface RecruiterCandidateRanking {
+  applicationId: number;
+  candidateId: number;
+  candidateName: string;
+  candidateEmail: string;
+  status: ApplicationStatus;
+  appliedAt: string;
+  resumeMatch: number;
+  assessmentScore: number | null;
+  skillCoverage: number;
+  overallAiScore: number;
+  assessmentStatus: string;
 }
 
 // ---- Skills ----
@@ -194,6 +235,31 @@ export interface CandidateJobRecommendations {
   skills: string[];
   jobTitles: string[];
   recommendations: JobRecommendation[];
+}
+
+export type ApplicationStatus = 'applied' | 'reviewed' | 'shortlisted' | 'rejected' | 'withdrawn';
+
+export interface Application {
+  id: number;
+  jobId: number;
+  candidateId: number;
+  status: ApplicationStatus;
+  resumeMatchScore: number;
+  matchDetailsJson: {
+    matchedSkills: string[];
+    missingSkills: string[];
+    skillGap?: Array<{ skill: string; priority: 'high' | 'medium' | 'low' }>;
+    resumeSkills?: string[];
+    jobSkills?: Array<{ name: string; importance: string }>;
+    evaluatedSkillCount: number;
+    calculation: string;
+  } | null;
+  appliedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  job: Job & {
+    recruiter: { user: Pick<User, 'name'> };
+  };
 }
 
 // ---- Matching ----

@@ -1,174 +1,260 @@
-# SmartFresher
+# JobFix
 
-> AI-powered skill verification and hiring platform. Candidates prove skills through AI-generated assessments; recruiters find the right fit via verified competency matching — not resume keywords.
+JobFix is an AI-assisted hiring platform with a single React application for candidates, recruiters, and administrators. Recruiters create companies and jobs, candidates apply using parsed resumes, and JobFix generates job-skill assessments and ranked candidate results.
 
----
+## What runs locally
 
-## Monorepo Structure
+| Path | Technology | Responsibility |
+|---|---|---|
+| `apps/frontend` | React, Vite, TypeScript | Candidate, recruiter, and admin portal |
+| `apps/core-service` | Express, Prisma, PostgreSQL | Authentication, business rules, REST API, data persistence |
+| `apps/ai-service` | FastAPI, LangGraph | Resume parsing, job analysis, questions, and evaluation |
 
-```
-smartfresher/
-├── apps/
-│   ├── frontend/       # React + Vite + TypeScript + Tailwind CSS
-│   ├── core-service/   # Express.js + TypeScript + Prisma + PostgreSQL
-│   └── ai-service/     # FastAPI + LangGraph  ← developed separately (see note below)
-├── packages/           # Shared utilities (future use)
-├── .gitignore
-└── README.md
-```
+The browser calls the Core Service at `/api`. The Core Service calls the AI Service internally at `AI_SERVICE_URL`.
 
-> **ai-service note**: The AI service (`apps/ai-service`) is developed and run independently by a separate developer. It is not part of this README's setup instructions. See `apps/ai-service/` for its own setup. The frontend **never** calls ai-service directly — all AI requests flow through core-service, which proxies them internally.
+## 1. Prerequisites
 
----
+Install the following before starting:
 
-## Prerequisites
+- Node.js 18 or newer, including npm.
+- Python 3.11 or 3.12, installed from python.org (not only the Microsoft Store launcher).
+- PostgreSQL 14+ with the `vector` extension, or a Supabase PostgreSQL project with pgvector enabled.
+- A Groq API key for the AI Service.
 
-- **Node.js** ≥ 18
-- **npm** ≥ 9
-- **PostgreSQL** ≥ 14 running locally (or via Docker — see below)
+Check your tools in PowerShell:
 
----
-
-## 1. Environment Setup
-
-### core-service
-
-```bash
-cd apps/core-service
-cp .env.example .env
-# Edit .env — set DATABASE_URL, JWT_SECRET, AI_SERVICE_URL
+```powershell
+node --version
+npm --version
+py --version
 ```
 
-### frontend
+## 2. Get the source and install Node dependencies
 
-The frontend reads `VITE_API_URL` — if not set, it defaults to `/api` (proxied by Vite dev server to core-service on port 3001). No `.env` file needed for basic local dev.
+```powershell
+git clone https://github.com/tanuj5946/jobfix.git
+cd jobfix
 
----
-
-## 2. Database Setup
-
-### Option A — Local PostgreSQL
-
-```bash
-# Create the database
-psql -U postgres -c "CREATE DATABASE smartfresher;"
-
-# Run Prisma migrations
 cd apps/core-service
 npm install
-npx prisma migrate dev --name init
-```
 
-### Option B — PostgreSQL via Docker (quick start)
-
-```bash
-docker run -d \
-  --name sf-postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=smartfresher \
-  -p 5432:5432 \
-  postgres:16-alpine
-```
-
-Then run `npx prisma migrate dev` as above.
-
----
-
-## 3. Running Locally
-
-### core-service (port 3001)
-
-```bash
-cd apps/core-service
+cd ../frontend
 npm install
-npm run dev
 ```
 
-Verify: `GET http://localhost:3001/health` → `{ "status": "ok" }`
+## 3. Configure PostgreSQL
 
-### frontend (port 5173)
+### Local PostgreSQL
 
-```bash
-cd apps/frontend
-npm install
-npm run dev
+Create a database and enable pgvector:
+
+```sql
+CREATE DATABASE jobfix;
+\c jobfix
+CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-Open: `http://localhost:5173`
+Use the same connection string for `DATABASE_URL` and `DIRECT_URL` when PostgreSQL is local:
 
-> The Vite dev server proxies `/api/*` → `http://localhost:3001`, so the frontend and core-service work together with no CORS issues in development.
+```text
+postgresql://postgres:YOUR_PASSWORD@localhost:5432/jobfix
+```
 
----
+### Supabase
 
-## 4. Prisma Cheat Sheet
+Use two URLs from **Supabase Dashboard → Settings → Database → Connection string**:
 
-```bash
+- `DATABASE_URL`: Transaction Pooler URL, port `6543`, with `pgbouncer=true`.
+- `DIRECT_URL`: Direct Connection URL, port `5432`; Prisma migrations use this URL.
+
+Do not use the pooler URL as `DIRECT_URL`. It can cause migration and TLS errors.
+
+## 4. Configure the Core Service
+
+Copy the example environment file:
+
+```powershell
 cd apps/core-service
+Copy-Item .env.example .env
+```
 
-# Generate Prisma client after schema changes
+Edit `apps/core-service/.env` and set at least:
+
+```dotenv
+DATABASE_URL="your pooled or local PostgreSQL URL"
+DIRECT_URL="your direct PostgreSQL URL"
+JWT_SECRET="a-long-random-secret-at-least-16-characters"
+AI_SERVICE_URL="http://localhost:8000"
+PORT=3001
+CORS_ORIGINS="http://localhost:5173"
+
+ADMIN_NAME="JobFix Admin"
+ADMIN_EMAIL="admin@jobfix.local"
+ADMIN_PASSWORD="use-a-strong-local-password"
+```
+
+Never commit `.env`, database URLs, JWT secrets, or API keys.
+
+## 5. Apply Prisma migrations safely
+
+Generate the client and deploy all committed migrations:
+
+```powershell
+cd apps/core-service
 npm run db:generate
-
-# Create and apply a new migration
-npm run db:migrate
-
-# Open Prisma Studio (DB GUI)
-npm run db:studio
-
-# Push schema directly (no migration file — use only in dev)
-npm run db:push
+npx prisma migrate deploy
+npx prisma migrate status
 ```
 
----
+Use `prisma migrate deploy` for every existing, shared, staging, or production database. It only applies migrations missing from `_prisma_migrations`; it does not reset data.
 
-## 5. API Overview (core-service)
+Do **not** run these against a database with data:
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/auth/register` | Public | Register candidate or recruiter |
-| POST | `/auth/login` | Public | Login, returns JWT |
-| GET | `/auth/me` | JWT | Current user |
-| GET/PATCH | `/candidates/me` | Candidate | Profile |
-| POST | `/candidates/me/resume` | Candidate | Upload + AI-parse resume |
-| GET/POST | `/candidates/me/skills` | Candidate | Skills |
-| GET/PATCH | `/recruiters/me` | Recruiter | Profile |
-| GET/POST/PATCH/DELETE | `/jobs` | Public (GET) / Recruiter | Job CRUD |
-| GET | `/skills` | Public | Browse/search skills |
-| POST | `/assessments` | Candidate | Create assessment (triggers AI question gen) |
-| POST | `/assessments/:id/answers` | Candidate | Submit answer (triggers AI grading) |
-| POST | `/assessments/:id/submit` | Candidate | Finalise assessment |
-| GET | `/matches/job/:jobId` | Recruiter | Ranked candidates |
-| POST | `/matches/job/:jobId/run` | Recruiter | Trigger AI match computation |
-| POST/GET | `/career-coach/plan` | Candidate | Generate / retrieve improvement plan |
-| GET | `/health` | Public | Health check |
+```powershell
+npx prisma migrate reset
+npx prisma db push
+npx prisma migrate dev
+```
 
----
+`migrate dev` is only for creating a new migration on an isolated local development database.
 
-## 6. What's Mocked vs. Functional
+## 6. Seed skills and the admin account
 
-| Feature | Status |
-|---------|--------|
-| Register / Login | ✅ **Functional** — real bcrypt + JWT |
-| JWT middleware | ✅ **Functional** |
-| Prisma DB schema | ✅ **Functional** — all 14 tables |
-| Candidate/Recruiter CRUD | ✅ **Functional** (DB-backed) |
-| Skills list/search | ✅ **Functional** (DB-backed) |
-| Resume upload → AI parsing | 🔵 **Mock** — `AiServiceClient.parseResume()` returns hardcoded data |
-| Assessment question generation | 🔵 **Mock** — `AiServiceClient.generateAssessment()` returns 3 sample questions |
-| Answer grading | 🔵 **Mock** — `AiServiceClient.gradeAssessment()` returns fixed partial marks |
-| Job–candidate matching | 🔵 **Mock** — `AiServiceClient.getMatchExplanation()` returns fixed 78.5% score |
-| Career coach / improvement plan | 🔵 **Mock** — `AiServiceClient.getImprovementPlan()` returns 2 sample gaps |
-| Frontend routing | ✅ **Functional** — all routes render, auth guard works |
-| Frontend API calls | 🔵 **Mock returns** — functions exist, call core-service endpoints |
+```powershell
+cd apps/core-service
+npm run seed:skills
+npm run seed:admin
+```
 
-To wire up real AI: replace the mock method bodies in [`src/services/aiServiceClient.ts`](apps/core-service/src/services/aiServiceClient.ts) with HTTP calls to `env.AI_SERVICE_URL`.
+The admin email and password come from `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`. Change the example password before using any shared environment.
 
----
+## 7. Configure and start the AI Service
 
-## 7. Project Conventions
+Create a fresh virtual environment. This is important if `venv` was created using a removed or Microsoft Store Python installation.
 
-- **Frontend → core-service only.** The frontend never calls ai-service directly.
-- **core-service → ai-service** via `AiServiceClient`. `AI_SERVICE_URL` is the only config needed.
-- **Prisma schema** is the single source of truth for DB structure — do not run raw SQL migrations separately.
-- **Zod** for all request validation in core-service.
-- **JWT** is stored in `localStorage` on the frontend (key: `sf_token`). Token is attached via axios interceptor.
+```powershell
+cd apps/ai-service
+py -3.12 -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Set the AI environment variables for the current PowerShell session:
+
+```powershell
+$env:GROQ_API_KEY="your-groq-api-key"
+$env:AI_DATABASE_URL="your-direct-postgresql-url"
+```
+
+`AI_DATABASE_URL` may be replaced with `DATABASE_URL` if the AI Service should use the same direct PostgreSQL connection. Start the service:
+
+```powershell
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+Verify it in a separate terminal:
+
+```powershell
+Invoke-WebRequest http://localhost:8000/health
+```
+
+Expected: an HTTP 200 response.
+
+## 8. Start the Core Service
+
+Open a second terminal:
+
+```powershell
+cd jobfix/apps/core-service
+npm run dev
+```
+
+Verify it:
+
+```powershell
+Invoke-WebRequest http://localhost:3001/health
+```
+
+Expected: HTTP 200 and a JSON health response. If it cannot connect to PostgreSQL, check `DIRECT_URL`, TLS settings, and the database provider’s connection-string guidance.
+
+## 9. Start the frontend
+
+Open a third terminal:
+
+```powershell
+cd jobfix/apps/frontend
+npm run dev
+```
+
+Open <http://localhost:5173>. Vite proxies browser requests from `/api` to `http://localhost:3001`.
+
+## 10. Manual functional verification
+
+Use this sequence after all three services are healthy:
+
+1. Sign up or sign in as a recruiter.
+2. Open **Company** and create the company profile.
+3. Open **Post a Job**, add a complete job description, and save the draft.
+4. Wait for job-description analysis to complete, then publish the job from the recruiter dashboard.
+5. Sign up or sign in as a candidate.
+6. Upload a PDF or DOCX resume and confirm detected skills.
+7. Open **Browse Jobs** and apply to the published job.
+8. Confirm the application shows Resume Match, Missing Skills, and Skill Gap.
+9. Open **Assessment**, complete all questions, and submit.
+10. Return to the recruiter dashboard and view ranked candidates.
+11. Sign in with the seeded admin account and open **Administration** to view platform analytics and Question Bank coverage.
+
+## Useful commands
+
+Run these from `apps/core-service`:
+
+```powershell
+npm run build          # TypeScript build
+npm run db:generate    # Regenerate Prisma Client
+npx prisma migrate deploy
+npx prisma migrate status
+npm run db:studio      # Opens Prisma Studio
+npm run seed:skills
+npm run seed:admin
+```
+
+Run these from `apps/frontend`:
+
+```powershell
+npm run build
+npm run dev
+```
+
+## Troubleshooting
+
+### Prisma reports schema drift
+
+Do not reset the database. Check migration history first:
+
+```powershell
+cd apps/core-service
+npx prisma migrate status
+```
+
+Use [migration documentation](docs/MIGRATION_SUMMARY.md) and the committed migration SQL to apply a forward-only repair. Back up production data before any manual SQL.
+
+### Core Service fails with a Supabase TLS or connection error
+
+Confirm that `DIRECT_URL` is the Supabase direct connection URL on port `5432` and that `DATABASE_URL` is the pooler URL on port `6543` with `pgbouncer=true`. Copy fresh URLs from Supabase rather than editing credentials manually.
+
+### AI Service Python cannot start
+
+Delete and recreate only the local `apps/ai-service/venv` directory using a currently installed Python interpreter, then reinstall `requirements.txt`. Do not reuse a virtual environment that points to a removed interpreter.
+
+### Candidate cannot apply
+
+Candidates must upload and parse a resume before applying. Jobs must be AI-analysed and published before they appear in Browse Jobs.
+
+## Documentation
+
+- [Architecture](ARCHITECTURE.md)
+- [ER Diagram](docs/ER_DIAGRAM.md)
+- [API Documentation](docs/API.md)
+- [Migration Summary](docs/MIGRATION_SUMMARY.md)
+- [AI Service Notes](apps/ai-service/docs/README.md)

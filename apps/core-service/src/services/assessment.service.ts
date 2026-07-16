@@ -17,37 +17,80 @@ export class AssessmentService {
     if (!selectedSkills.length) {
       throw new Error('Select at least one skill before generating an assessment');
     }
-const aiAssessment = await aiServiceClient.createAssessment(
-  selectedSkills,
-  selectedRole,
-);
+    return this.createFromSkills({
+      candidateId: profile.id,
+      targetRole: selectedRole,
+      selectedSkills,
+      metadata: { source: 'candidate_skills' } as Prisma.InputJsonValue,
+    });
+  }
 
-console.log("\n========== AI ASSESSMENT ==========");
-console.dir(aiAssessment, { depth: null });
-console.log("==================================\n");
+  async createForApplication(applicationId: number) {
+    const existing = await prisma.assessment.findUnique({ where: { applicationId } });
+    if (existing) return existing;
 
-const finalAssessment = aiAssessment.final_assessment;
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        job: { include: { requiredSkills: { include: { skill: true } } } },
+      },
+    });
+    if (!application) throw new Error('Application not found');
 
-console.log("\n========== FINAL ASSESSMENT ==========");
-console.dir(finalAssessment, { depth: null });
-console.log("=====================================\n");
+    const selectedSkills = application.job.requiredSkills.map((item) => item.skill.name);
+    if (!selectedSkills.length) {
+      throw new Error('The job has no extracted skills for assessment generation');
+    }
+
+    return this.createFromSkills({
+      candidateId: application.candidateId,
+      targetRole: application.job.title,
+      selectedSkills,
+      applicationId,
+      metadata: {
+        source: 'job_description_skills',
+        application_id: applicationId,
+        job_id: application.jobId,
+      } as Prisma.InputJsonValue,
+    });
+  }
+
+  private async createFromSkills({
+    candidateId,
+    targetRole,
+    selectedSkills,
+    metadata,
+    applicationId,
+  }: {
+    candidateId: number;
+    targetRole: string;
+    selectedSkills: string[];
+    metadata: Prisma.InputJsonValue;
+    applicationId?: number;
+  }) {
+    const aiAssessment = await aiServiceClient.createAssessment(
+      selectedSkills,
+      targetRole,
+    );
+
+    const finalAssessment = aiAssessment.final_assessment;
     if (!finalAssessment?.questions?.length) {
       throw new Error('AI service did not return assessment questions');
     }
 
-    const saved = await assessmentRepository.createAssessmentFromAi(
-      profile.id,
-      selectedRole,
+    return assessmentRepository.createAssessmentFromAi(
+      candidateId,
+      targetRole,
       finalAssessment.title,
       finalAssessment.questions,
       {
+        ...(metadata as object),
         skill_weights: aiAssessment.skill_weights ?? {},
         missing_core_skills: aiAssessment.missing_core_skills ?? [],
         blueprint: aiAssessment.blueprint ?? [],
       } as Prisma.InputJsonValue,
+      applicationId,
     );
-
-    return saved;
   }
 
   async getCandidateAssessment(userId: number, assessmentId: number) {

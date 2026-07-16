@@ -1,7 +1,7 @@
 {
   "name": "core-service",
   "version": "0.1.0",
-  "description": "SmartFresher Core Service — Express.js REST API",
+  "description": "JobFix Core Service — Express.js REST API",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",

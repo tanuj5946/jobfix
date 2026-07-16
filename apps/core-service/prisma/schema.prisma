@@ -1,29 +1,21 @@
-// ============================================================
-// Prisma Schema — SmartFresher
-// Mapped exactly from smartfresher_example_schema.sql
-// ============================================================
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")    // pooler (port 6543) with pgbouncer=true — used by the app at runtime
-  directUrl = env("DIRECT_URL")      // direct connection (port 5432) — used by prisma migrate
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// ── 1. USERS & PROFILES ─────────────────────────────────────
-
 model User {
-  id           Int      @id @default(autoincrement())
-  role         String   // 'candidate' | 'recruiter' | 'admin'
-  name         String   @db.VarChar(150)
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
+  id               Int               @id @default(autoincrement())
+  role             String
+  name             String            @db.VarChar(150)
+  email            String            @unique @db.VarChar(255)
+  passwordHash     String            @map("password_hash")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
   candidateProfile CandidateProfile?
   recruiterProfile RecruiterProfile?
 
@@ -31,20 +23,20 @@ model User {
 }
 
 model CandidateProfile {
-  id               Int      @id @default(autoincrement())
-  userId           Int      @unique @map("user_id")
-  resumeUrl        String?  @map("resume_url")
-  resumeText       String?  @map("resume_text")
-  parsedResumeJson Json?    @map("parsed_resume_json")
-  targetRole       String?  @db.VarChar(150) @map("target_role")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  candidateSkills       CandidateSkill[]
-  assessments           Assessment[]
-  assessmentAttempts    AssessmentAttempt[]
-  jobMatches            JobMatch[]
+  id                      Int                      @id @default(autoincrement())
+  userId                  Int                      @unique @map("user_id")
+  resumeUrl               String?                  @map("resume_url")
+  resumeText              String?                  @map("resume_text")
+  parsedResumeJson        Json?                    @map("parsed_resume_json")
+  targetRole              String?                  @map("target_role") @db.VarChar(150)
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  assessmentAttempts      AssessmentAttempt[]
+  assessments             Assessment[]
+  applications            Application[]
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidateSkills         CandidateSkill[]
+  jobMatches              JobMatch[]
   learningRecommendations LearningRecommendation[]
 
   @@map("candidate_profiles")
@@ -53,198 +45,186 @@ model CandidateProfile {
 model RecruiterProfile {
   id             Int      @id @default(autoincrement())
   userId         Int      @unique @map("user_id")
-  companyName    String   @db.VarChar(200) @map("company_name")
+  companyName    String?  @map("company_name") @db.VarChar(200)
   companyWebsite String?  @map("company_website")
   industry       String?  @db.VarChar(100)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
-
-  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobs Job[]
+  jobs           Job[]
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("recruiter_profiles")
 }
 
-// ── 2. SKILLS ────────────────────────────────────────────────
-
 model Skill {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique @db.VarChar(100)
-  category    String?  @db.VarChar(100)
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  candidateSkills          CandidateSkill[]
-  assessmentSkills         AssessmentSkill[]
-  assessmentQuestions      AssessmentQuestion[]
-  jobRequiredSkills        JobRequiredSkill[]
-  learningRecommendations  LearningRecommendation[]
+  id                      Int                      @id @default(autoincrement())
+  name                    String                   @unique @db.VarChar(100)
+  category                String?                  @db.VarChar(100)
+  description             String?
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  assessmentQuestions     AssessmentQuestion[]
+  assessmentSkills        AssessmentSkill[]
+  candidateSkills         CandidateSkill[]
+  jobRequiredSkills       JobRequiredSkill[]
+  learningRecommendations LearningRecommendation[]
 
   @@map("skills")
 }
 
 model CandidateSkill {
-  id             Int       @id @default(autoincrement())
-  candidateId    Int       @map("candidate_id")
-  skillId        Int       @map("skill_id")
-  source         String    @default("manually_added") // 'auto_detected' | 'manually_added'
-  parseConfidence Decimal? @db.Decimal(5, 2) @map("parse_confidence")
-  verifiedScore  Decimal?  @db.Decimal(5, 2) @map("verified_score")
-  verifiedLevel  String?   @map("verified_level") // 'beginner' | 'intermediate' | 'advanced'
-  lastAssessedAt DateTime? @map("last_assessed_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-
-  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  skill     Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  id              Int              @id @default(autoincrement())
+  candidateId     Int              @map("candidate_id")
+  skillId         Int              @map("skill_id")
+  source          String           @default("manually_added")
+  parseConfidence Decimal?         @map("parse_confidence") @db.Decimal(5, 2)
+  verifiedScore   Decimal?         @map("verified_score") @db.Decimal(5, 2)
+  verifiedLevel   String?          @map("verified_level")
+  lastAssessedAt  DateTime?        @map("last_assessed_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  candidate       CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  skill           Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([candidateId, skillId])
-  @@index([candidateId], name: "idx_candidate_skills_candidate")
+  @@index([candidateId], map: "idx_candidate_skills_candidate")
   @@map("candidate_skills")
 }
 
-// ── 3. ASSESSMENTS ───────────────────────────────────────────
-
 model Assessment {
-  id             Int       @id @default(autoincrement())
-  candidateId    Int       @map("candidate_id")
-  assessmentName String?   @db.VarChar(200) @map("assessment_name")
-  targetRole     String?   @db.VarChar(150) @map("target_role")
-  status         String    @default("pending") // 'pending'|'in_progress'|'completed'|'abandoned'
-  startedAt      DateTime? @map("started_at")
-  completedAt    DateTime? @map("completed_at")
-  assessmentMetadataJson Json? @map("assessment_metadata_json")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id                     Int                  @id @default(autoincrement())
+  candidateId            Int                  @map("candidate_id")
+  applicationId          Int?                 @unique @map("application_id")
+  assessmentName         String?              @map("assessment_name") @db.VarChar(200)
+  targetRole             String?              @map("target_role") @db.VarChar(150)
+  status                 String               @default("pending")
+  startedAt              DateTime?            @map("started_at")
+  completedAt            DateTime?            @map("completed_at")
+  createdAt              DateTime             @default(now()) @map("created_at")
+  updatedAt              DateTime             @updatedAt @map("updated_at")
+  assessmentMetadataJson Json?                @map("assessment_metadata_json")
+  attempts               AssessmentAttempt[]
+  questions              AssessmentQuestion[]
+  result                 AssessmentResult?
+  skills                 AssessmentSkill[]
+  candidate              CandidateProfile     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  application            Application?         @relation(fields: [applicationId], references: [id], onDelete: SetNull)
 
-  candidate  CandidateProfile     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  skills     AssessmentSkill[]
-  questions  AssessmentQuestion[]
-  attempts   AssessmentAttempt[]
-  result     AssessmentResult?
-
-  @@index([candidateId], name: "idx_assessments_candidate")
+  @@index([candidateId], map: "idx_assessments_candidate")
   @@map("assessments")
 }
 
 model AssessmentSkill {
-  id           Int @id @default(autoincrement())
-  assessmentId Int @map("assessment_id")
-  skillId      Int @map("skill_id")
-
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  skill      Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  id           Int        @id @default(autoincrement())
+  assessmentId Int        @map("assessment_id")
+  skillId      Int        @map("skill_id")
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([assessmentId, skillId])
   @@map("assessment_skills")
 }
 
 model AssessmentQuestion {
-  id             Int      @id @default(autoincrement())
-  assessmentId   Int      @map("assessment_id")
-  skillId        Int      @map("skill_id")
-  questionText   String   @map("question_text")
-  questionType   String   @map("question_type") // 'mcq' | 'coding' | 'conceptual'
-  difficulty     String?  // 'easy' | 'medium' | 'hard'
-  optionsJson    Json?    @map("options_json")
-  expectedAnswer String?  @map("expected_answer")
+  id             Int                @id @default(autoincrement())
+  assessmentId   Int                @map("assessment_id")
+  skillId        Int                @map("skill_id")
+  questionText   String             @map("question_text")
+  questionType   String             @map("question_type")
+  difficulty     String?
+  optionsJson    Json?              @map("options_json")
+  expectedAnswer String?            @map("expected_answer")
   rubric         String?
-  testCasesJson  Json?    @map("test_cases_json")
-  marks          Decimal  @default(1) @db.Decimal(5, 2)
-  generatedByAi  Boolean  @default(true) @map("generated_by_ai")
-  createdAt      DateTime @default(now()) @map("created_at")
+  testCasesJson  Json?              @map("test_cases_json")
+  marks          Decimal            @default(1) @db.Decimal(5, 2)
+  generatedByAi  Boolean            @default(true) @map("generated_by_ai")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  answers        AssessmentAnswer[]
+  assessment     Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  skill          Skill              @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  assessment Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  skill      Skill             @relation(fields: [skillId], references: [id], onDelete: Cascade)
-  answers    AssessmentAnswer[]
-
-  @@index([assessmentId], name: "idx_assessment_questions_assessment")
+  @@index([assessmentId], map: "idx_assessment_questions_assessment")
   @@map("assessment_questions")
 }
 
 model AssessmentAnswer {
-  id              Int      @id @default(autoincrement())
-  questionId      Int      @map("question_id")
-  attemptId       BigInt?  @map("attempt_id")
-  candidateAnswer String?  @map("candidate_answer")
-  score           Decimal? @db.Decimal(5, 2)
-  evaluationJson  Json?    @map("evaluation_json")
+  id              Int                @id @default(autoincrement())
+  questionId      Int                @map("question_id")
+  candidateAnswer String?            @map("candidate_answer")
+  score           Decimal?           @db.Decimal(5, 2)
+  evaluationJson  Json?              @map("evaluation_json")
   feedback        String?
-  isCorrect       Boolean? @map("is_correct")
-  marksAwarded    Decimal? @db.Decimal(5, 2) @map("marks_awarded")
-  answeredAt      DateTime @default(now()) @map("answered_at")
-
-  question AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  attempt  AssessmentAttempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  answeredAt      DateTime           @default(now()) @map("answered_at")
+  attemptId       BigInt?            @map("attempt_id")
+  isCorrect       Boolean?           @map("is_correct")
+  marksAwarded    Decimal?           @map("marks_awarded") @db.Decimal(5, 2)
+  attempt         AssessmentAttempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
-  @@index([attemptId], name: "idx_assessment_answers_attempt")
+  @@index([attemptId], map: "idx_assessment_answers_attempt")
   @@map("assessment_answers")
 }
 
 model AssessmentAttempt {
-  id           BigInt    @id @default(autoincrement())
-  assessmentId Int       @map("assessment_id")
-  candidateId  Int       @map("candidate_id")
-  status       String    @default("submitted")
-  startedAt    DateTime  @default(now()) @map("started_at")
-  submittedAt  DateTime? @map("submitted_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  id           BigInt             @id @default(autoincrement())
+  assessmentId Int                @map("assessment_id")
+  candidateId  Int                @map("candidate_id")
+  status       String             @default("submitted")
+  startedAt    DateTime           @default(now()) @map("started_at")
+  submittedAt  DateTime?          @map("submitted_at")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  answers      AssessmentAnswer[]
+  assessment   Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  candidate    CandidateProfile   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  results      AssessmentResult[]
 
-  assessment Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  candidate  CandidateProfile    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  answers    AssessmentAnswer[]
-  results    AssessmentResult[]
-
-  @@index([assessmentId], name: "idx_assessment_attempts_assessment")
-  @@index([candidateId], name: "idx_assessment_attempts_candidate")
+  @@index([assessmentId], map: "idx_assessment_attempts_assessment")
+  @@index([candidateId], map: "idx_assessment_attempts_candidate")
   @@map("assessment_attempts")
 }
 
 model AssessmentResult {
-  id                 Int      @id @default(autoincrement())
-  assessmentId       Int      @unique @map("assessment_id")
-  attemptId          BigInt?  @map("attempt_id")
-  overallScore       Decimal  @db.Decimal(5, 2) @map("overall_score")
-  overallLevel       String?  @map("overall_level") // 'beginner'|'intermediate'|'advanced'
-  skillBreakdownJson Json?    @map("skill_breakdown_json")
-  evaluationSummary  String?  @map("evaluation_summary")
-  assessmentGrade    String?  @map("assessment_grade")
-  passFail           String?  @map("pass_fail")
-  confidenceScore    Decimal? @db.Decimal(5, 2) @map("confidence_score")
-  recruiterReportJson Json?   @map("recruiter_report_json")
-  learningRecommendationsJson Json? @map("learning_recommendations_json")
-  promptVersionsJson Json? @map("prompt_versions_json")
-  generatedAt        DateTime @default(now()) @map("generated_at")
-
-  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  attempt    AssessmentAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  id                          Int                @id @default(autoincrement())
+  assessmentId                Int                @unique @map("assessment_id")
+  overallScore                Decimal            @map("overall_score") @db.Decimal(5, 2)
+  overallLevel                String?            @map("overall_level")
+  skillBreakdownJson          Json?              @map("skill_breakdown_json")
+  evaluationSummary           String?            @map("evaluation_summary")
+  generatedAt                 DateTime           @default(now()) @map("generated_at")
+  attemptId                   BigInt?            @map("attempt_id")
+  assessmentGrade             String?            @map("assessment_grade")
+  passFail                    String?            @map("pass_fail")
+  confidenceScore             Decimal?           @map("confidence_score") @db.Decimal(5, 2)
+  recruiterReportJson         Json?              @map("recruiter_report_json")
+  learningRecommendationsJson Json?              @map("learning_recommendations_json")
+  promptVersionsJson          Json?              @map("prompt_versions_json")
+  assessment                  Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  attempt                     AssessmentAttempt? @relation(fields: [attemptId], references: [id])
 
   @@map("assessment_results")
 }
 
-// ── 4. JOBS & MATCHING ───────────────────────────────────────
-
 model Job {
-  id               Int      @id @default(autoincrement())
-  recruiterId      Int      @map("recruiter_id")
-  title            String   @db.VarChar(200)
+  id               Int                @id @default(autoincrement())
+  recruiterId      Int                @map("recruiter_id")
+  title            String             @db.VarChar(200)
   description      String?
-  status           String   @default("draft") // 'draft'|'published'|'closed'
-  location         String?  @db.VarChar(150)
-  workMode         String?  @map("work_mode")     // 'remote'|'hybrid'|'onsite'
-  experienceLevel  String?  @map("experience_level") // 'fresher'|'1_2_years'|'3_plus_years'
-  minVerifiedLevel String?  @map("min_verified_level") // 'beginner'|'intermediate'|'advanced'
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  status           String             @default("draft")
+  location         String?            @db.VarChar(150)
+  workMode         String?            @map("work_mode")
+  experienceLevel  String?            @map("experience_level")
+  minVerifiedLevel String?            @map("min_verified_level")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  matches          JobMatch[]
+  requiredSkills   JobRequiredSkill[]
+  applications     Application[]
+  descriptionAnalysis JobDescriptionAnalysis?
+  recruiter        RecruiterProfile   @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
 
-  recruiter      RecruiterProfile   @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
-  requiredSkills JobRequiredSkill[]
-  matches        JobMatch[]
-
-  @@index([recruiterId], name: "idx_jobs_recruiter")
-  @@index([status], name: "idx_jobs_status")
+  @@index([recruiterId], map: "idx_jobs_recruiter")
+  @@index([status], map: "idx_jobs_status")
   @@map("jobs")
 }
 
@@ -252,71 +232,104 @@ model JobRequiredSkill {
   id         Int    @id @default(autoincrement())
   jobId      Int    @map("job_id")
   skillId    Int    @map("skill_id")
-  importance String @default("medium") // 'high'|'medium'|'low'
-
-  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  importance String @default("medium")
+  source     String @default("manual")
+  job        Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill      Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, skillId])
   @@map("job_required_skills")
 }
 
-model JobMatch {
-  id            Int      @id @default(autoincrement())
-  jobId         Int      @map("job_id")
-  candidateId   Int      @map("candidate_id")
-  matchScore    Decimal  @db.Decimal(5, 2) @map("match_score")
-  aiExplanation String?  @map("ai_explanation")
-  matchedAt     DateTime @default(now()) @map("matched_at")
+model JobDescriptionAnalysis {
+  id               Int      @id @default(autoincrement())
+  jobId            Int      @unique @map("job_id")
+  requiredSkills   Json     @default("[]") @map("required_skills")
+  preferredSkills  Json     @default("[]") @map("preferred_skills")
+  education        String?
+  responsibilities Json     @default("[]")
+  experience       String?
+  status           String   @default("pending")
+  failureReason    String?  @map("failure_reason")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  job       Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("job_description_analyses")
+}
+
+model Application {
+  id               Int      @id @default(autoincrement())
+  jobId            Int      @map("job_id")
+  candidateId      Int      @map("candidate_id")
+  status           String   @default("applied")
+  resumeMatchScore Decimal  @db.Decimal(5, 2) @map("resume_match_score")
+  matchDetailsJson Json?    @map("match_details_json")
+  appliedAt        DateTime @default(now()) @map("applied_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  job        Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate  CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assessment Assessment?
 
   @@unique([jobId, candidateId])
-  @@index([jobId], name: "idx_job_matches_job")
-  @@index([candidateId], name: "idx_job_matches_candidate")
+  @@index([candidateId], map: "idx_applications_candidate")
+  @@index([jobId], map: "idx_applications_job")
+  @@map("applications")
+}
+
+model JobMatch {
+  id            Int              @id @default(autoincrement())
+  jobId         Int              @map("job_id")
+  candidateId   Int              @map("candidate_id")
+  matchScore    Decimal          @map("match_score") @db.Decimal(5, 2)
+  aiExplanation String?          @map("ai_explanation")
+  matchedAt     DateTime         @default(now()) @map("matched_at")
+  candidate     CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job           Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, candidateId])
+  @@index([jobId], map: "idx_job_matches_job")
+  @@index([candidateId], map: "idx_job_matches_candidate")
   @@map("job_matches")
 }
 
-// ── 5. CAREER COACH ─────────────────────────────────────────
-
 model LearningRecommendation {
-  id            Int      @id @default(autoincrement())
-  candidateId   Int      @map("candidate_id")
-  skillId       Int      @map("skill_id")
-  resourceTitle String   @db.VarChar(255) @map("resource_title")
-  resourceUrl   String?  @map("resource_url")
-  resourceType  String?  @map("resource_type") // 'course'|'article'|'practice_problems'|'video'
-  priority      String   @default("medium") // 'high'|'medium'|'low'
-  status        String   @default("pending") // 'pending'|'completed'
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id            Int              @id @default(autoincrement())
+  candidateId   Int              @map("candidate_id")
+  skillId       Int              @map("skill_id")
+  resourceTitle String           @map("resource_title") @db.VarChar(255)
+  resourceUrl   String?          @map("resource_url")
+  resourceType  String?          @map("resource_type")
+  priority      String           @default("medium")
+  status        String           @default("pending")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  candidate     CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  skill         Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  skill     Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
-
-  @@index([candidateId], name: "idx_learning_recommendations_candidate")
+  @@index([candidateId], map: "idx_learning_recommendations_candidate")
   @@map("learning_recommendations")
 }
 
-// â”€â”€ 6. QUESTION BANK / RAG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 model QuestionBank {
-  id            BigInt   @id @default(autoincrement())
-  role          String   @db.VarChar(150)
-  skill         String   @db.VarChar(100)
-  category      String?  @db.VarChar(100)
-  difficulty    String   @db.VarChar(50)
-  questionType  String   @map("question_type") @db.VarChar(50)
-  questionText  String   @map("question_text")
+  id            BigInt                @id @default(autoincrement())
+  role          String                @db.VarChar(150)
+  skill         String                @db.VarChar(100)
+  category      String?               @db.VarChar(100)
+  difficulty    String                @db.VarChar(50)
+  questionType  String                @map("question_type") @db.VarChar(50)
+  questionText  String                @map("question_text")
   options       Json?
-  correctAnswer String?  @map("correct_answer")
+  correctAnswer String?               @map("correct_answer")
   rubric        Json?
-  tags          String[] @default([])
+  tags          String[]              @default([])
   embedding     Unsupported("vector")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@index([role, skill, difficulty, questionType], name: "idx_question_bank_metadata")
+  @@index([role, skill, difficulty, questionType], map: "idx_question_bank_metadata")
   @@map("question_bank")
 }

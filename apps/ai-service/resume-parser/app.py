@@ -4,7 +4,7 @@
 # import os
 
 # app = FastAPI(
-#     title="SmartFresher Resume Parser",
+#     title="JobFix Resume Parser",
 #     version="1.0.0"
 # )
 

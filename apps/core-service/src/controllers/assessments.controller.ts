@@ -22,8 +22,8 @@ export const getAssessmentById = asyncHandler(async (req: Request, res: Response
     return;
   }
 
-  const assessment = await prisma.assessment.findUnique({
-    where: { id },
+  const assessment = await prisma.assessment.findFirst({
+    where: { id, candidate: { userId: req.user!.userId } },
     include: { questions: { include: { skill: true } }, skills: { include: { skill: true } }, result: true },
   });
 
@@ -93,7 +93,15 @@ export const getAssessmentResult = asyncHandler(async (req: Request, res: Respon
     return;
   }
 
-  const result = await prisma.assessmentResult.findUnique({ where: { assessmentId } });
+  const assessment = await prisma.assessment.findFirst({
+    where: { id: assessmentId, candidate: { userId: req.user!.userId } },
+    include: { result: true },
+  });
+  if (!assessment) {
+    res.status(404).json({ success: false, message: 'Assessment not found' });
+    return;
+  }
+  const result = assessment.result;
   if (!result) {
     res.status(404).json({ success: false, message: 'Result not found' });
     return;
