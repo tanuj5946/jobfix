@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/auth';
+import { saveAuth } from '../../auth/storage';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -14,9 +15,8 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { token, user } = await authApi.login({ email, password });
-      localStorage.setItem('sf_token', token);
-      localStorage.setItem('sf_user', JSON.stringify(user));
+      const { accessToken, user } = await authApi.login({ email, password });
+      saveAuth(accessToken, user);
       navigate(
         user.role === 'candidate'
           ? '/candidate/dashboard'

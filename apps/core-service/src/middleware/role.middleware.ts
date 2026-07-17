@@ -13,3 +13,6 @@ export const requireRole =
     }
     next();
   };
+
+// More descriptive name for new route modules; preserves the existing API.
+export const authorize = requireRole;

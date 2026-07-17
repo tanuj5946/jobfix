@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/auth';
+import { saveAuth } from '../../auth/storage';
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -19,9 +20,8 @@ export function RegisterPage() {
     setLoading(true);
     try {
       const payload = { ...form, companyName: form.role === 'recruiter' ? form.companyName : undefined };
-      const { token, user } = await authApi.register(payload);
-      localStorage.setItem('sf_token', token);
-      localStorage.setItem('sf_user', JSON.stringify(user));
+      const { accessToken, user } = await authApi.register(payload);
+      saveAuth(accessToken, user);
       navigate(user.role === 'candidate' ? '/candidate/resume-upload' : '/recruiter/dashboard', { replace: true });
     } catch {
       setError('Registration failed. Please try again.');

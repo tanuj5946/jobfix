@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type { ApiResponse, User } from '../types';
+import { clearAuth } from '../auth/storage';
 
 export interface LoginPayload {
   email: string;
@@ -15,7 +16,7 @@ export interface RegisterPayload {
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
   user: User;
 }
 
@@ -36,7 +37,6 @@ export const authApi = {
   },
 
   logout: () => {
-    localStorage.removeItem('sf_token');
-    localStorage.removeItem('sf_user');
+    clearAuth();
   },
 };

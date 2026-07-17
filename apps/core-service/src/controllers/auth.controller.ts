@@ -59,11 +59,11 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
-  const token = signToken({ userId: user.id, role: user.role });
+  const accessToken = signToken({ userId: user.id, email: user.email, role: user.role });
 
   res.status(201).json({
     success: true,
-    data: { token, user: buildUserResponse(user) },
+    data: { accessToken, user: buildUserResponse(user) },
   });
 });
 
@@ -79,8 +79,8 @@ const authenticateUser = async (
   const valid = await comparePassword(password, user.passwordHash);
   if (!valid || (requiredRole && user.role !== requiredRole)) return null;
 
-  const token = signToken({ userId: user.id, role: user.role });
-  return { token, user: buildUserResponse(user) };
+  const accessToken = signToken({ userId: user.id, email: user.email, role: user.role });
+  return { accessToken, user: buildUserResponse(user) };
 };
 
 export const login = asyncHandler(async (req: Request, res: Response) => {

@@ -5,12 +5,12 @@ import { verifyToken } from '../utils/jwt';
 declare global {
   namespace Express {
     interface Request {
-      user?: { userId: number; role: string };
+      user?: { userId: number; email: string; role: string };
     }
   }
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -22,9 +22,12 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
 
   try {
     const payload = verifyToken(token);
-    req.user = { userId: payload.userId, role: payload.role };
+    req.user = { userId: payload.userId, email: payload.email, role: payload.role };
     next();
   } catch {
     res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
 };
+
+// Kept as an alias so existing route modules remain compatible.
+export const authMiddleware = authenticate;

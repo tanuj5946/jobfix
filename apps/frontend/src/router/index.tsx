@@ -29,11 +29,24 @@ import { AdminPage } from '../pages/admin/AdminPage';
 
 // Shared
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { UnauthorizedPage } from '../pages/UnauthorizedPage';
+import { getAuthenticatedUser } from '../auth/storage';
+
+function RoleHomeRedirect() {
+  const role = getAuthenticatedUser()?.role;
+  const destination = role === 'recruiter'
+    ? '/recruiter/dashboard'
+    : role === 'admin'
+      ? '/admin'
+      : '/candidate/dashboard';
+  return <Navigate to={destination} replace />;
+}
 
 export const router = createBrowserRouter([
   // ── Public routes ────────────────────────────────────────
   { path: '/login',    element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/unauthorized', element: <UnauthorizedPage /> },
 
   // ── Protected shell ──────────────────────────────────────
   {
@@ -44,7 +57,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       // Root → redirect based on role (handled in AppShell)
-      { index: true, element: <Navigate to="/candidate/dashboard" replace /> },
+      { index: true, element: <RoleHomeRedirect /> },
 
       // ── Candidate routes ──────────────────────────────────
       {

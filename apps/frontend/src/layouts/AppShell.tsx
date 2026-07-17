@@ -1,17 +1,15 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import type { User } from '../types';
+import { getAuthenticatedUser } from '../auth/storage';
 
 export function AppShell() {
-  const navigate = useNavigate();
-  const raw = localStorage.getItem('sf_user');
-  const user: User | null = raw ? JSON.parse(raw) : null;
+  const user: User | null = getAuthenticatedUser();
 
   // Redirect root '/' based on role
   if (!user) {
-    navigate('/login', { replace: true });
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   return (

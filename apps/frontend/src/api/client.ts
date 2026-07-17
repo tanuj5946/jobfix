@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuth, getAccessToken } from '../auth/storage';
 
 // ============================================================
 // Axios instance — single configurable base URL → core-service
@@ -19,7 +20,7 @@ export const apiClient = axios.create({
 
 // --- Request interceptor: attach JWT from localStorage ---
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('sf_token');
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -31,8 +32,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('sf_token');
-      localStorage.removeItem('sf_user');
+      clearAuth();
       window.location.href = '/login';
     }
     return Promise.reject(error);
