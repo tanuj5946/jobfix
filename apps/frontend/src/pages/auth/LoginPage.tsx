@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/auth';
-import { saveAuth } from '../../auth/storage';
+import { useAuth } from '../../auth/AuthContext';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
@@ -16,7 +17,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       const { accessToken, user } = await authApi.login({ email, password });
-      saveAuth(accessToken, user);
+      login(accessToken, user);
       navigate(
         user.role === 'candidate'
           ? '/candidate/dashboard'
@@ -58,6 +59,10 @@ export function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+
+        <p className="mt-4 text-right text-sm">
+          <Link to="/forgot-password" className="font-medium text-brand-600 hover:text-brand-700">Forgot password?</Link>
+        </p>
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Don't have an account?{' '}

@@ -36,6 +36,33 @@ export const authApi = {
     return data.data;
   },
 
+  verifyEmail: async (token: string): Promise<string> => {
+    const { data } = await apiClient.get<{ success: boolean; message: string }>('/auth/verify-email', {
+      params: { token },
+    });
+    return data.message;
+  },
+
+  forgotPassword: async (email: string): Promise<string> => {
+    const { data } = await apiClient.post<{ success: boolean; message: string }>('/auth/forgot-password', { email });
+    return data.message;
+  },
+
+  validatePasswordResetToken: async (token: string): Promise<string> => {
+    const { data } = await apiClient.get<{ success: boolean; message: string }>('/auth/reset-password', {
+      params: { token },
+    });
+    return data.message;
+  },
+
+  resetPassword: async (token: string, password: string): Promise<string> => {
+    const { data } = await apiClient.post<{ success: boolean; message: string }>('/auth/reset-password', {
+      token,
+      password,
+    });
+    return data.message;
+  },
+
   logout: () => {
     clearAuth();
   },

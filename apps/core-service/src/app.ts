@@ -1,11 +1,15 @@
 import express from 'express';
 import cors    from 'cors';
 import morgan  from 'morgan';
+import helmet  from 'helmet';
 import { env }             from './config/env';
 import routes              from './routes';
-import { errorMiddleware } from './middleware/error.middleware';
+import { errorMiddleware, notFoundMiddleware } from './middleware/error.middleware';
+import { apiRateLimit }   from './middleware/rateLimit.middleware';
+import { HttpError }      from './utils/httpError';
 
 const app = express();
+const allowedOrigins = env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean);
 
 // Prisma uses JavaScript bigint for BIGINT columns (for example,
 // assessment_results.attempt_id). JSON does not support bigint values, so
@@ -15,13 +19,24 @@ app.set('json replacer', (_key: string, value: unknown) =>
 );
 
 // ── Middleware ───────────────────────────────────────────────
+app.use(helmet());
 app.use(cors({
-  origin: env.CORS_ORIGINS.split(',').map(o => o.trim()),
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new HttpError(403, 'Origin is not allowed by CORS policy'));
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Authorization', 'Content-Type', 'X-Request-Id'],
+  maxAge: 86_400,
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+app.use(apiRateLimit);
 
 // ── Health check ─────────────────────────────────────────────
 app.get('/health', (_req, res) => {
@@ -30,6 +45,7 @@ app.get('/health', (_req, res) => {
 
 // ── API routes ───────────────────────────────────────────────
 app.use('/', routes);
+app.use(notFoundMiddleware);
 
 // ── Global error handler (must be last) ─────────────────────
 app.use(errorMiddleware);

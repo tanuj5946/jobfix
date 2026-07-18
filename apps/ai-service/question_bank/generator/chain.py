@@ -36,6 +36,8 @@ Generate
 {count}
 
 questions.
+
+Respond ONLY with a valid JSON object that follows the requested format.
 """,
             ),
             (

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/auth';
-import { saveAuth } from '../../auth/storage';
+import { useAuth } from '../../auth/AuthContext';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({
     name: '', email: '', password: '', role: 'candidate' as 'candidate' | 'recruiter', companyName: '',
   });
@@ -21,7 +22,7 @@ export function RegisterPage() {
     try {
       const payload = { ...form, companyName: form.role === 'recruiter' ? form.companyName : undefined };
       const { accessToken, user } = await authApi.register(payload);
-      saveAuth(accessToken, user);
+      login(accessToken, user);
       navigate(user.role === 'candidate' ? '/candidate/resume-upload' : '/recruiter/dashboard', { replace: true });
     } catch {
       setError('Registration failed. Please try again.');

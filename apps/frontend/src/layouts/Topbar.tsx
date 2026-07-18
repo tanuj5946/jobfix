@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { authApi } from '../api/auth';
 import type { User } from '../types';
+import { useAuth } from '../auth/AuthContext';
 
 interface TopbarProps {
   user: User;
@@ -8,9 +8,10 @@ interface TopbarProps {
 
 export function Topbar({ user }: TopbarProps) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    authApi.logout();
+    logout();
     navigate('/login', { replace: true });
   };
 

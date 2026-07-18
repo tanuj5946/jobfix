@@ -12,7 +12,7 @@ function decodePayload(token: string): AuthTokenPayload | null {
       atob(base64).split('').map(char => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`).join(''),
     );
     const payload = JSON.parse(json) as AuthTokenPayload;
-    return typeof payload.userId === 'number'
+    return typeof payload.id === 'number'
       && typeof payload.email === 'string'
       && ['candidate', 'recruiter', 'admin'].includes(payload.role)
       && typeof payload.exp === 'number'
@@ -55,7 +55,7 @@ export function getAuthenticatedUser(): User | null {
   try {
     const user = JSON.parse(localStorage.getItem(USER_KEY) ?? '') as User;
     const payload = decodePayload(token);
-    if (!payload || user.id !== payload.userId || user.email !== payload.email || user.role !== payload.role) {
+    if (!payload || user.id !== payload.id || user.email !== payload.email || user.role !== payload.role) {
       clearAuth();
       return null;
     }

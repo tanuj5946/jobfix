@@ -1,11 +1,10 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
-import type { User } from '../types';
-import { getAuthenticatedUser } from '../auth/storage';
+import { useAuth } from '../auth/AuthContext';
 
 export function AppShell() {
-  const user: User | null = getAuthenticatedUser();
+  const { user } = useAuth();
 
   // Redirect root '/' based on role
   if (!user) {

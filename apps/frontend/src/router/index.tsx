@@ -7,6 +7,9 @@ import { RoleGuard } from '../components/RoleGuard';
 // Auth pages
 import { LoginPage } from '../pages/auth/LoginPage';
 import { RegisterPage } from '../pages/auth/RegisterPage';
+import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage';
+import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 
 // Candidate pages
 import { CandidateDashboardPage } from '../pages/candidate/DashboardPage';
@@ -30,10 +33,11 @@ import { AdminPage } from '../pages/admin/AdminPage';
 // Shared
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
-import { getAuthenticatedUser } from '../auth/storage';
+import { useAuth } from '../auth/AuthContext';
 
 function RoleHomeRedirect() {
-  const role = getAuthenticatedUser()?.role;
+  const { user } = useAuth();
+  const role = user?.role;
   const destination = role === 'recruiter'
     ? '/recruiter/dashboard'
     : role === 'admin'
@@ -46,6 +50,9 @@ export const router = createBrowserRouter([
   // ── Public routes ────────────────────────────────────────
   { path: '/login',    element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/verify-email', element: <VerifyEmailPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
   { path: '/unauthorized', element: <UnauthorizedPage /> },
 
   // ── Protected shell ──────────────────────────────────────

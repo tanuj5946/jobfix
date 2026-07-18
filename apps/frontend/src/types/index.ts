@@ -14,7 +14,7 @@ export interface User {
 }
 
 export interface AuthTokenPayload {
-  userId: number;
+  id: number;
   email: string;
   role: UserRole;
   exp: number;

@@ -12,3 +12,5 @@ Return structured data using these rules:
 - education: concise education requirement, or null when absent.
 - responsibilities: concise list of the stated responsibilities.
 - experience: concise experience requirement, or null when absent.
+
+You MUST return a valid JSON object only. Do not include markdown or explanatory text.

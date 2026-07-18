@@ -115,6 +115,9 @@ export const jobService = {
           status: 'completed',
         },
       });
+    }, {
+      // Skill upserts can exceed Prisma's five-second default on Supabase.
+      timeout: 60_000,
     });
 
     return prisma.job.findUniqueOrThrow({ where: { id: jobId }, include: jobInclude });

@@ -1,11 +1,15 @@
 import type { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/jwt';
+import { verifyToken, type JwtPayload } from '../utils/jwt';
 
 // Extend Express Request to carry the decoded JWT payload
 declare global {
   namespace Express {
     interface Request {
-      user?: { userId: number; email: string; role: string };
+      /**
+       * Verified JWT claims. `userId` is retained for existing controllers
+       * that predate the token's `id` claim.
+       */
+      user?: JwtPayload & { userId: number };
     }
   }
 }
@@ -22,7 +26,8 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
 
   try {
     const payload = verifyToken(token);
-    req.user = { userId: payload.userId, email: payload.email, role: payload.role };
+    // Attach verified JWT claims; the compatibility alias avoids controller changes.
+    req.user = { ...payload, userId: payload.id };
     next();
   } catch {
     res.status(401).json({ success: false, message: 'Invalid or expired token' });

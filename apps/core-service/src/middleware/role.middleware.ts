@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 
-export const requireRole =
+export const authorize =
   (...roles: string[]) =>
   (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
@@ -14,5 +14,5 @@ export const requireRole =
     next();
   };
 
-// More descriptive name for new route modules; preserves the existing API.
-export const authorize = requireRole;
+// Kept as an alias so existing route modules remain compatible.
+export const requireRole = authorize;
