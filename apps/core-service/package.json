@@ -12,7 +12,9 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "seed:admin": "ts-node src/scripts/seed-admin.ts",
-    "seed:skills": "ts-node src/scripts/seed-skills.ts"
+    "seed:skills": "ts-node src/scripts/seed-skills.ts",
+    "lint": "...",
+    "test": "..."
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.0.0",

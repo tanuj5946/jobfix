@@ -34,6 +34,7 @@ import { AdminPage } from '../pages/admin/AdminPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
 import { useAuth } from '../auth/AuthContext';
+import { FEATURES } from '../config/features';
 
 function RoleHomeRedirect() {
   const { user } = useAuth();
@@ -78,7 +79,9 @@ export const router = createBrowserRouter([
           { path: 'assessment',        element: <AssessmentPage /> },
           { path: 'assessment/:id/results', element: <AssessmentResultsPage /> },
           { path: 'profile',           element: <VerifiedProfilePage /> },
-          { path: 'career-coach',      element: <CareerCoachPage /> },
+          ...(FEATURES.CAREER_COACH
+            ? [{ path: 'career-coach', element: <CareerCoachPage /> }]
+            : []),
           { path: 'jobs',              element: <CandidateJobsPage /> },
           { path: 'applications',      element: <ApplicationsPage /> },
         ],

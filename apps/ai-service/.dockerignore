@@ -1,0 +1,15 @@
+__pycache__
+.pytest_cache
+.venv
+venv
+.git
+.env
+*.py[cod]
+*.egg-info
+.mypy_cache
+.ruff_cache
+coverage
+htmlcov
+*.log
+Dockerfile
+.dockerignore

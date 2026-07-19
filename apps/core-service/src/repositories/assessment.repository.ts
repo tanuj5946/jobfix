@@ -58,7 +58,11 @@ export class AssessmentRepository {
         promptVersionsJson: (evaluation.prompt_versions ?? {}) as Prisma.InputJsonValue,
       };
       await tx.assessmentResult.upsert({ where: { assessmentId }, update: data, create: { assessmentId, ...data } });
-    });
+    },
+  {
+    timeout: 60000,
+    maxWait: 60000,
+  });
   }
 
   async createAssessmentFromAi(

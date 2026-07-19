@@ -6,25 +6,25 @@ import { useAuth } from '../auth/AuthContext';
 export function AppShell() {
   const { isLoading, user } = useAuth();
 
-  // Redirect root '/' based on role
   if (isLoading) return null;
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      {/* Sidebar */}
-      <aside className="hidden md:flex md:flex-col" style={{ width: 'var(--sidebar-width)' }}>
-        <Sidebar user={user} />
-      </aside>
+    <div className="min-h-screen bg-transparent px-3 py-3 sm:px-4 lg:px-5">
+      <div className="mx-auto flex min-h-[calc(100vh-1.5rem)] max-w-7xl gap-4 rounded-[32px] border border-slate-200/70 bg-white/60 p-3 shadow-[0_30px_90px_-36px_rgba(15,23,42,0.3)] backdrop-blur xl:gap-6">
+        <aside className="hidden w-[var(--sidebar-width)] flex-col lg:flex">
+          <Sidebar user={user} />
+        </aside>
 
-      {/* Main column */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar user={user} />
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
-        </main>
+        <div className="flex flex-1 flex-col overflow-hidden rounded-[28px] border border-slate-200/70 bg-slate-50/70">
+          <Topbar user={user} />
+          <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   );

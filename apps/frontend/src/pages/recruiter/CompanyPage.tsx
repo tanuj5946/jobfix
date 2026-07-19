@@ -1,3 +1,4 @@
+import { Building2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { companiesApi } from '../../api/companies';
@@ -87,26 +88,38 @@ export function CompanyPage() {
     }
   };
 
-  if (loading) return <p className="text-sm text-gray-500">Loading company details…</p>;
+  if (loading) return <div className="card p-6 text-sm text-slate-500">Loading company details…</div>;
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900">Company</h1>
-      <p className="mt-1 text-sm text-gray-500">Manage the company attached to your recruiter account.</p>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="rounded-[32px] border border-slate-200/80 bg-gradient-to-br from-slate-900 via-slate-800 to-blue-700 p-6 text-white shadow-soft sm:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-300">Company profile</p>
+        <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">Shape the company profile your hiring team sees</h1>
+        <p className="mt-3 max-w-2xl text-sm text-slate-300 sm:text-base">Edit the same profile used by the recruiter workflow in a cleaner, more premium experience.</p>
+      </div>
 
-      <form onSubmit={handleSave} className="mt-6 card space-y-5 p-6">
-        {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {message && <div className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>}
+      <form onSubmit={handleSave} className="card space-y-5 p-6">
+        {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {message && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div>}
+
+        <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600">
+          <div className="flex items-center gap-2 font-semibold text-slate-800">
+            <Building2 className="h-4 w-4 text-blue-600" />
+            Company details stay connected to the existing backend.
+          </div>
+          <p className="mt-2">Everything still saves through the current API, but now the form feels more worthy of a modern recruiting platform.</p>
+        </div>
+
         <div>
-          <label htmlFor="company-name" className="mb-1 block text-sm font-medium text-gray-700">Company name</label>
+          <label htmlFor="company-name" className="mb-2 block text-sm font-medium text-slate-700">Company name</label>
           <input id="company-name" required minLength={2} maxLength={200} value={form.name} onChange={set('name')} className="input" />
         </div>
         <div>
-          <label htmlFor="company-website" className="mb-1 block text-sm font-medium text-gray-700">Website</label>
+          <label htmlFor="company-website" className="mb-2 block text-sm font-medium text-slate-700">Website</label>
           <input id="company-website" type="url" value={form.website} onChange={set('website')} className="input" placeholder="https://example.com" />
         </div>
         <div>
-          <label htmlFor="company-industry" className="mb-1 block text-sm font-medium text-gray-700">Industry</label>
+          <label htmlFor="company-industry" className="mb-2 block text-sm font-medium text-slate-700">Industry</label>
           <input id="company-industry" value={form.industry} onChange={set('industry')} className="input" placeholder="Technology" />
         </div>
         <div className="flex flex-wrap items-center gap-3">

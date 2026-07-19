@@ -1,3 +1,4 @@
+import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../api/auth';
@@ -6,10 +7,10 @@ import { useAuth } from '../../auth/AuthContext';
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail]       = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,42 +35,52 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="card w-full max-w-md p-8">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Sign in to JobFix</h1>
-          <p className="mt-1 text-sm text-gray-500">Welcome back!</p>
+    <div className="flex min-h-screen items-center justify-center bg-transparent px-4 py-10">
+      <div className="grid w-full max-w-6xl overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/90 shadow-[0_35px_120px_-45px_rgba(15,23,42,0.35)] lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="relative flex flex-col justify-between bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 p-8 text-white sm:p-10">
+          <div>
+            <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-medium">Trusted by modern hiring teams</div>
+            <h1 className="mt-6 text-4xl font-semibold leading-tight sm:text-5xl">Welcome back to SmartFresher</h1>
+            <p className="mt-4 max-w-md text-base text-blue-50/90">Secure AI-powered interviews, polished candidate reviews, and a premium experience for every team member.</p>
+          </div>
+
+          <div className="mt-8 rounded-[24px] border border-white/20 bg-white/10 p-5 backdrop-blur">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="h-5 w-5" />
+              <p className="text-sm font-medium">Enterprise-grade authentication, built for focus.</p>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-          )}
-          <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">Email</label>
-            <input id="email" type="email" required value={email}
-              onChange={e => setEmail(e.target.value)} className="input" placeholder="you@example.com" />
+        <div className="p-8 sm:p-10">
+          <div className="mb-8 text-center lg:text-left">
+            <h2 className="text-3xl font-semibold text-slate-900">Sign in</h2>
+            <p className="mt-2 text-sm text-slate-500">Continue where you left off.</p>
           </div>
-          <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-            <input id="password" type="password" required value={password}
-              onChange={e => setPassword(e.target.value)} className="input" placeholder="••••••••" />
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+            )}
+            <div>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">Email</label>
+              <input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} className="input" placeholder="you@example.com" />
+            </div>
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+              <input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} className="input" placeholder="********" />
+            </div>
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? 'Signing in...' : 'Sign in'}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </button>
+          </form>
+
+          <div className="mt-6 flex items-center justify-between text-sm">
+            <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-700">Forgot password?</Link>
+            <Link to="/register" className="font-medium text-slate-600 hover:text-slate-900">Create account</Link>
           </div>
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        <p className="mt-4 text-right text-sm">
-          <Link to="/forgot-password" className="font-medium text-brand-600 hover:text-brand-700">Forgot password?</Link>
-        </p>
-
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-brand-600 hover:text-brand-700">
-            Register
-          </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

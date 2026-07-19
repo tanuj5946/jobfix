@@ -16,10 +16,36 @@ export const questionBankService = {
     const valid = questions.filter(question => Array.isArray(question.embedding) && question.embedding.length);
     if (!valid.length) return [];
     return prisma.$transaction(valid.map(question => prisma.$queryRaw(Prisma.sql`
-      INSERT INTO question_bank (role, skill, category, difficulty, question_type, question_text, options, correct_answer, rubric, tags, embedding)
-      VALUES (${question.role}, ${question.skill}, ${question.category ?? null}, ${question.difficulty}, ${question.question_type},
-        ${question.question_text}, CAST(${JSON.stringify(question.options ?? null)} AS jsonb), ${question.correct_answer ?? null},
-        CAST(${JSON.stringify(question.rubric ?? null)} AS jsonb), ${question.tags ?? []}, CAST(${vector(question.embedding!)} AS vector))
+      INSERT INTO question_bank (
+  role,
+  skill,
+  category,
+  difficulty,
+  question_type,
+  question_text,
+  options,
+  correct_answer,
+  rubric,
+  tags,
+  embedding,
+  created_at,
+  updated_at
+)
+VALUES (
+  ${question.role},
+  ${question.skill},
+  ${question.category ?? null},
+  ${question.difficulty},
+  ${question.question_type},
+  ${question.question_text},
+  CAST(${JSON.stringify(question.options ?? null)} AS jsonb),
+  ${question.correct_answer ?? null},
+  CAST(${JSON.stringify(question.rubric ?? null)} AS jsonb),
+  ${question.tags ?? []},
+  CAST(${vector(question.embedding!)} AS vector),
+  NOW(),
+  NOW()
+)
       RETURNING ${columns}`)));
   },
 };

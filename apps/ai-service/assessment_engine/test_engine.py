@@ -26,14 +26,6 @@ def main():
 
     result = graph.invoke(initial_state)
 
-    print(
-        json.dumps(
-            result,
-            indent=4,
-            ensure_ascii=False
-        )
-    )
-
 
 if __name__ == "__main__":
     main()

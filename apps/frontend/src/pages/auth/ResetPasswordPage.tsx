@@ -1,3 +1,4 @@
+import { ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../../api/auth';
@@ -7,7 +8,7 @@ export function ResetPasswordPage() {
   const [token] = useState(() => searchParams.get('token') ?? '');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'checking' | 'ready' | 'success' | 'error'>('checking');
-  const [message, setMessage] = useState('Checking your reset link…');
+  const [message, setMessage] = useState('Checking your reset link...');
 
   useEffect(() => {
     if (!token) {
@@ -37,17 +38,20 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="card w-full max-w-md p-8">
-        <h1 className="text-2xl font-bold text-gray-900">Reset password</h1>
+    <div className="flex min-h-screen items-center justify-center bg-transparent px-4 py-10">
+      <div className="w-full max-w-md rounded-[32px] border border-slate-200/80 bg-white/90 p-8 shadow-[0_35px_120px_-45px_rgba(15,23,42,0.35)] sm:p-10">
+        <h1 className="text-3xl font-semibold text-slate-900">Reset password</h1>
         {status === 'ready' && (
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             <input className="input" type="password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="New password (8+ characters)" />
-            <button className="btn-primary w-full" type="submit">Reset password</button>
+            <button className="btn-primary w-full" type="submit">
+              Reset password
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </button>
           </form>
         )}
-        {status !== 'ready' && <p className={`mt-4 text-sm ${status === 'error' ? 'text-red-700' : 'text-gray-600'}`}>{message}</p>}
-        {status === 'success' || status === 'error' ? <p className="mt-6 text-center text-sm"><Link className="font-medium text-brand-600" to="/login">Go to sign in</Link></p> : null}
+        {status !== 'ready' && <p className={`mt-4 text-sm ${status === 'error' ? 'text-red-700' : 'text-slate-600'}`}>{message}</p>}
+        {status === 'success' || status === 'error' ? <p className="mt-6 text-center text-sm"><Link className="font-medium text-blue-600 hover:text-blue-700" to="/login">Go to sign in</Link></p> : null}
       </div>
     </div>
   );
