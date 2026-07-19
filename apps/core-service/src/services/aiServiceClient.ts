@@ -34,6 +34,7 @@ export interface AiAssessmentQuestion {
   correct_answer?: string | null;
   rubric?: unknown;
   marks?: number;
+  embedding?: number[];
 }
 
 export interface AiGeneratedAssessment {
@@ -78,9 +79,9 @@ export interface ImprovementPlan {
 
 export interface QuestionBankSeedResult {
   role: string;
-  results: Array<{ skill: string; generated: number; stored: number; failed: number }>;
+  results: Array<{ skill: string; generated: number; prepared: number; failed: number; questions?: Array<Record<string, unknown>> }>;
   generated: number;
-  stored: number;
+  prepared: number;
   failed: number;
 }
 

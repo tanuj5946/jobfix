@@ -8,7 +8,7 @@ export interface JwtPayload {
 }
 
 export const signToken = (payload: JwtPayload): string =>
-  jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN } as jwt.SignOptions);
+  jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.ACCESS_TOKEN_EXPIRES } as jwt.SignOptions);
 
 export const verifyToken = (token: string): JwtPayload => {
   const payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] });

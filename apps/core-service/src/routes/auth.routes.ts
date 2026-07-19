@@ -8,6 +8,7 @@ import {
   register,
   login,
   loginRecruiter,
+  logout,
   getMe,
   verifyEmail,
   resendVerification,
@@ -29,6 +30,7 @@ router.use(authRateLimit);
 router.post('/register', validate(RegisterSchema), register);
 router.post('/login',    validate(LoginSchema),    login);
 router.post('/recruiter/login', validate(LoginSchema), loginRecruiter);
+router.post('/logout', logout);
 router.get( '/me',       authMiddleware,            getMe);
 router.get( '/verify-email', validate(VerificationTokenQuerySchema, 'query'), verifyEmail);
 router.post(

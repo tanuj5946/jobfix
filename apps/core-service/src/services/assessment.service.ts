@@ -1,8 +1,9 @@
 import { Prisma } from '@prisma/client';
-import { aiServiceClient } from './aiServiceClient';
+import { aiServiceClient, type AiAssessmentQuestion } from './aiServiceClient';
 import { assessmentRepository } from '../repositories/assessment.repository';
 import { candidateService } from './candidate.service';
 import { prisma } from '../config/database';
+import { questionBankService } from './questionBank.service';
 
 export class AssessmentService {
   async createForCandidate(userId: number) {
@@ -78,6 +79,25 @@ export class AssessmentService {
       throw new Error('AI service did not return assessment questions');
     }
 
+    // Generated questions are returned by AI; Core validates ownership of the
+    // write and persists reusable question-bank entries itself.
+    await questionBankService.storeGenerated(
+      finalAssessment.questions
+        .filter(question => question.question_id == null)
+        .map(question => ({
+          role: targetRole,
+          skill: question.skill,
+          difficulty: question.difficulty,
+          question_type: question.question_type,
+          question_text: question.question_text ?? question.question ?? '',
+          options: question.options,
+          correct_answer: question.correct_answer,
+          rubric: question.rubric,
+          tags: [],
+          embedding: (question as AiAssessmentQuestion & { embedding?: number[] }).embedding,
+        })),
+    );
+
     return assessmentRepository.createAssessmentFromAi(
       candidateId,
       targetRole,
@@ -150,6 +170,15 @@ export class AssessmentService {
       candidate_id: profile.id,
       attempt_id: Number(attempt.id),
     });
+
+    if (!evaluation.result || typeof evaluation.result !== 'object') {
+      throw new Error('AI service did not return an evaluation result');
+    }
+    await assessmentRepository.persistAiEvaluation(
+      assessment.id,
+      attempt.id,
+      evaluation.result as Record<string, any>,
+    );
 
     await prisma.assessment.update({
       where: { id: assessment.id },

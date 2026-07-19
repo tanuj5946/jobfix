@@ -1,5 +1,6 @@
 import express from 'express';
 import cors    from 'cors';
+import cookieParser from 'cookie-parser';
 import morgan  from 'morgan';
 import helmet  from 'helmet';
 import { env }             from './config/env';
@@ -30,9 +31,10 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Authorization', 'Content-Type', 'X-Request-Id'],
+  allowedHeaders: ['Content-Type', 'X-Request-Id'],
   maxAge: 86_400,
 }));
+app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));

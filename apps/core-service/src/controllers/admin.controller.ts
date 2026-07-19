@@ -4,6 +4,7 @@ import { prisma } from '../config/database';
 import { aiServiceClient } from '../services/aiServiceClient';
 import { adminOverviewService } from '../services/adminOverview.service';
 import { analyticsService } from '../services/analytics.service';
+import { questionBankService, type GeneratedQuestionForStorage } from '../services/questionBank.service';
 import { asyncHandler } from '../utils/asyncHandler';
 
 export const SeedQuestionBankSchema = z.object({
@@ -61,7 +62,9 @@ export const seedQuestionBank = asyncHandler(async (req: Request, res: Response)
     skills.map(skill => skill.name),
     payload.countPerSkill,
   );
-  res.json({ success: true, data: result });
+  const questions = result.results.flatMap(item => item.questions ?? []);
+  const stored = await questionBankService.storeGenerated(questions as unknown as GeneratedQuestionForStorage[]);
+  res.json({ success: true, data: { ...result, stored: stored.length } });
 });
 
 export const getOverview = asyncHandler(async (_req: Request, res: Response) => {

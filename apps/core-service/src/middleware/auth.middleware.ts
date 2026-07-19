@@ -15,14 +15,12 @@ declare global {
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies.accessToken;
 
-  if (!authHeader?.startsWith('Bearer ')) {
+  if (typeof token !== 'string' || !token) {
     res.status(401).json({ success: false, message: 'No token provided' });
     return;
   }
-
-  const token = authHeader.slice(7);
 
   try {
     const payload = verifyToken(token);

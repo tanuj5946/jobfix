@@ -71,6 +71,17 @@ const getPasswordResetUrl = (token: string) => {
   return url.toString();
 };
 
+const accessTokenCookieOptions = {
+  httpOnly: true,
+  secure: env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+};
+
+const setAccessTokenCookie = (res: Response, accessToken: string) => {
+  res.cookie('accessToken', accessToken, accessTokenCookieOptions);
+};
+
 // ── Controllers ──────────────────────────────────────────────
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -113,9 +124,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const accessToken = signToken({ id: user.id, email: user.email, role: user.role });
 
+  setAccessTokenCookie(res, accessToken);
   res.status(201).json({
     success: true,
-    data: { accessToken, user: buildUserResponse(user) },
+    data: { user: buildUserResponse(user) },
   });
 });
 
@@ -151,7 +163,8 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  res.json({ success: true, data: authenticated });
+  setAccessTokenCookie(res, authenticated.accessToken);
+  res.json({ success: true, data: { user: authenticated.user } });
 });
 
 /**
@@ -174,7 +187,13 @@ export const loginRecruiter = asyncHandler(async (req: Request, res: Response) =
     return;
   }
 
-  res.json({ success: true, data: authenticated });
+  setAccessTokenCookie(res, authenticated.accessToken);
+  res.json({ success: true, data: { user: authenticated.user } });
+});
+
+export const logout = asyncHandler(async (_req: Request, res: Response) => {
+  res.clearCookie('accessToken', accessTokenCookieOptions);
+  res.status(204).send();
 });
 
 export const getMe = asyncHandler(async (req: Request, res: Response) => {

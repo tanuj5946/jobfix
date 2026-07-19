@@ -10,6 +10,7 @@ import careerCoachRoutes from './careerCoach.routes';
 import adminRoutes       from './admin.routes';
 import companiesRoutes   from './companies.routes';
 import applicationsRoutes from './applications.routes';
+import internalRoutes from './internal.routes';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use('/career-coach', careerCoachRoutes);
 router.use('/admin',        adminRoutes);
 router.use('/companies',    companiesRoutes);
 router.use('/applications', applicationsRoutes);
+router.use('/internal',     internalRoutes);
 
 export default router;

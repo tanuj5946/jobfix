@@ -15,6 +15,52 @@ export interface StoreAssessmentQuestion {
 }
 
 export class AssessmentRepository {
+  async persistAiEvaluation(
+    assessmentId: number,
+    attemptId: bigint,
+    evaluation: Record<string, any>,
+  ) {
+    const answers = Array.isArray(evaluation.answers) ? evaluation.answers : [];
+    const recommendations = Array.isArray(evaluation.learning_recommendations)
+      ? evaluation.learning_recommendations : [];
+    await prisma.$transaction(async tx => {
+      for (const answer of answers) {
+        await tx.assessmentAnswer.update({
+          where: { id: Number(answer.answer_id) },
+          data: {
+            score: Number(answer.score), evaluationJson: answer,
+            feedback: answer.feedback ?? null, isCorrect: answer.is_correct ?? null,
+            marksAwarded: Number(answer.marks_awarded),
+          },
+        });
+      }
+      const assessment = await tx.assessment.findUniqueOrThrow({
+        where: { id: assessmentId }, select: { candidateId: true },
+      });
+      for (const recommendation of recommendations) {
+        const skill = await tx.skill.upsert({
+          where: { name: String(recommendation.skill) }, update: {}, create: { name: String(recommendation.skill) },
+        });
+        await tx.learningRecommendation.create({ data: {
+          candidateId: assessment.candidateId, skillId: skill.id,
+          resourceTitle: String(recommendation.resource_title), resourceUrl: recommendation.resource_url ?? null,
+          resourceType: recommendation.resource_type ?? null, priority: recommendation.priority ?? 'medium',
+        } });
+      }
+      const data = {
+        attemptId,
+        overallScore: Number(evaluation.overall_score), overallLevel: String(evaluation.overall_level ?? ''),
+        skillBreakdownJson: (evaluation.skill_breakdown ?? {}) as Prisma.InputJsonValue,
+        evaluationSummary: String(evaluation.evaluation_summary ?? ''), assessmentGrade: String(evaluation.assessment_grade ?? ''),
+        passFail: String(evaluation.pass_fail ?? ''), confidenceScore: Number(evaluation.confidence_score ?? 0),
+        recruiterReportJson: (evaluation.recruiter_report ?? {}) as Prisma.InputJsonValue,
+        learningRecommendationsJson: recommendations as Prisma.InputJsonValue,
+        promptVersionsJson: (evaluation.prompt_versions ?? {}) as Prisma.InputJsonValue,
+      };
+      await tx.assessmentResult.upsert({ where: { assessmentId }, update: data, create: { assessmentId, ...data } });
+    });
+  }
+
   async createAssessmentFromAi(
     candidateId: number,
     role: string,
