@@ -1,5 +1,4 @@
 # JobFix
-
 JobFix is an AI-assisted hiring platform with a single React application for candidates, recruiters, and administrators. Recruiters create companies and jobs, candidates apply using parsed resumes, and JobFix generates job-skill assessments and ranked candidate results.
 
 ## What runs locally
@@ -259,3 +258,4 @@ Candidates must upload and parse a resume before applying. Jobs must be AI-analy
 - [API Documentation](docs/API.md)
 - [Migration Summary](docs/MIGRATION_SUMMARY.md)
 - [AI Service Notes](apps/ai-service/docs/README.md)
+
