@@ -16,7 +16,7 @@
 - `POST /questions`: inserts one question-bank item.
 - `POST /questions/bulk`: inserts question-bank items.
 - `GET /questions/search`: searches by metadata or hybrid query.
-- `DELETE /questions/{question_id}`: deletes one question-bank item.
+- `DELETE /questions/{question_id}`: retired; question deletion is owned by the Core API.
 
 ## Error Shape
 

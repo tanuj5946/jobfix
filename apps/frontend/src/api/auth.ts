@@ -1,6 +1,5 @@
 import { apiClient } from './client';
 import type { ApiResponse, User } from '../types';
-import { clearAuth } from '../auth/storage';
 
 export interface LoginPayload {
   email: string;
@@ -16,7 +15,6 @@ export interface RegisterPayload {
 }
 
 export interface AuthResponse {
-  accessToken: string;
   user: User;
 }
 
@@ -33,6 +31,11 @@ export const authApi = {
 
   register: async (payload: RegisterPayload): Promise<AuthResponse> => {
     const { data } = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', payload);
+    return data.data;
+  },
+
+  getMe: async (): Promise<User> => {
+    const { data } = await apiClient.get<ApiResponse<User>>('/auth/me');
     return data.data;
   },
 
@@ -63,7 +66,7 @@ export const authApi = {
     return data.message;
   },
 
-  logout: () => {
-    clearAuth();
+  logout: async (): Promise<void> => {
+    await apiClient.post('/auth/logout');
   },
 };

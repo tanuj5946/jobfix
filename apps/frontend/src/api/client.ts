@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { clearAuth, getAccessToken } from '../auth/storage';
 
 // ============================================================
 // Axios instance — single configurable base URL → core-service
@@ -16,23 +15,15 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30_000,
-});
-
-// --- Request interceptor: attach JWT from localStorage ---
-apiClient.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true,
 });
 
 // --- Response interceptor: handle 401 globally ---
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      clearAuth();
+    // AuthProvider handles the startup /auth/me check without a redirect.
+    if (error.response?.status === 401 && !error.config?.url?.endsWith('/auth/me')) {
       window.location.href = '/login';
     }
     return Promise.reject(error);

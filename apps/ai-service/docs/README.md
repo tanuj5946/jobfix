@@ -14,7 +14,7 @@ The AI service owns resume parsing, assessment generation, question retrieval/ge
 - `GET /assessment/result/{assessment_id}`: load evaluation result.
 - `GET /assessment/report/{assessment_id}`: load recruiter report.
 - `GET /candidate/{candidate_id}/history`: load assessment history.
-- `POST /questions`, `POST /questions/bulk`, `GET /questions/search`, `DELETE /questions/{id}`: manage question bank.
+- `POST /questions`, `POST /questions/bulk`: prepare generated question payloads for Core to persist; `GET /questions/search` retrieves through Core.
 
 ## Observability
 
@@ -31,8 +31,8 @@ The service uses in-process TTL caches for repeated LLM calls and frequently ret
 ## Deployment
 
 1. Configure `GROQ_API_KEY`.
-2. Configure `AI_DATABASE_URL` or `DATABASE_URL`.
-3. Apply Prisma migrations from `apps/core-service`.
+2. Configure `CORE_API_URL` and `INTERNAL_API_KEY` to reach Core's internal API.
+3. Apply Prisma migrations from `apps/core-service`; the AI service does not connect to PostgreSQL.
 4. Install `apps/ai-service/requirements.txt`.
 5. Run with Uvicorn.
 

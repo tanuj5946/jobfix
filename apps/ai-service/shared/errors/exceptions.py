@@ -13,10 +13,6 @@ class AIServiceError(Exception):
         self.details = details or {}
 
 
-class DatabaseError(AIServiceError):
-    error_code = "database_error"
-
-
 class LLMError(AIServiceError):
     error_code = "llm_error"
 

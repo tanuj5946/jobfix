@@ -154,6 +154,7 @@ class AssessmentBuilderService:
             "rubric": question.get("rubric"),
             "marks": self._question_marks(question.get("question_type")),
             "tags": question.get("tags") or [],
+            "embedding": question.get("embedding"),
         }
 
     def _duration_minutes(

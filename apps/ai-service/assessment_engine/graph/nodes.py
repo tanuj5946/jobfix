@@ -476,7 +476,7 @@ def validate_generated_questions(
             log_event(
                 logger,
                 logging.WARNING,
-                "question_storage_failed_using_unstored_questions",
+                "question_preparation_failed_using_unembedded_questions",
                 error=str(exc),
             )
             stored_questions = validation["valid_questions"]

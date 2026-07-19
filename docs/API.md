@@ -1,6 +1,6 @@
 # JobFix API Documentation
 
-Base path: `/api`. Protected routes require `Authorization: Bearer <JWT>`.
+Base path: `/api`. Protected routes use the HTTP-only `accessToken` cookie. Browser clients must send requests with credentials enabled.
 
 ## Authentication
 
@@ -9,6 +9,7 @@ Base path: `/api`. Protected routes require `Authorization: Bearer <JWT>`.
 | POST | `/auth/register` | Public |
 | POST | `/auth/login` | Public candidate/general login |
 | POST | `/auth/recruiter/login` | Public recruiter login |
+| POST | `/auth/logout` | Authenticated session logout |
 | GET | `/auth/me` | Authenticated |
 
 ## Candidate and applications

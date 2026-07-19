@@ -10,7 +10,7 @@ Resume Parser
   -> Missing Question Generation
   -> Question Validation
   -> Assessment Builder
-  -> Assessment Persistence
+  -> Return Processed Result to Core
   -> Submission
   -> MCQ Evaluation
   -> Conceptual Evaluation
@@ -24,11 +24,10 @@ Resume Parser
 - `assessment_engine/chains`: LangChain prompt/model/parser chains.
 - `assessment_engine/graph`: LangGraph orchestration.
 - `assessment_engine/prompts`: prompt text and prompt version registry.
-- `assessment_engine/repositories`: PostgreSQL persistence.
 - `assessment_engine/schemas`: Pydantic contracts.
 - `assessment_engine/services`: business logic and orchestration helpers.
-- `retrieval`: embedding, vector store, and question retrieval.
-- `question_bank`: question repository and API schemas.
+- `retrieval`: embedding and Core-backed question retrieval.
+- `question_bank`: question generation and API schemas.
 - `shared`: LLM, cache, errors, security, and observability utilities.
 
 ## Production Hardening

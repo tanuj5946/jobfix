@@ -1,53 +1,57 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { User } from '../types';
-import { clearAuth, getAccessToken, getAccessTokenExpiresAt, getAuthenticatedUser, saveAuth } from './storage';
+import { authApi } from '../api/auth';
 
 interface AuthContextValue {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  login: (accessToken: string, user: User) => void;
-  logout: () => void;
+  isLoading: boolean;
+  login: (user: User) => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<{ token: string | null; user: User | null }>(() => {
-    const token = getAccessToken();
-    const user = token ? getAuthenticatedUser() : null;
-    return user ? { token, user } : { token: null, user: null };
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const logout = useCallback(() => {
-    clearAuth();
-    setSession({ token: null, user: null });
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      setUser(null);
+    }
   }, []);
 
-  const login = useCallback((accessToken: string, user: User) => {
-    saveAuth(accessToken, user);
-    setSession({ token: accessToken, user });
+  const login = useCallback((authenticatedUser: User) => {
+    setUser(authenticatedUser);
   }, []);
 
   useEffect(() => {
-    if (!session.token) return;
+    let active = true;
 
-    const expiresAt = getAccessTokenExpiresAt();
-    if (!expiresAt) {
-      logout();
-      return;
-    }
+    void authApi.getMe()
+      .then((authenticatedUser) => {
+        if (active) setUser(authenticatedUser);
+      })
+      .catch(() => {
+        if (active) setUser(null);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
 
-    const timeout = window.setTimeout(logout, Math.max(0, expiresAt - Date.now()));
-    return () => window.clearTimeout(timeout);
-  }, [logout, session.token]);
+    return () => { active = false; };
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
-    ...session,
-    isAuthenticated: Boolean(session.token && session.user),
+    user,
+    isAuthenticated: Boolean(user),
+    isLoading,
     login,
     logout,
-  }), [login, logout, session]);
+  }), [isLoading, login, logout, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

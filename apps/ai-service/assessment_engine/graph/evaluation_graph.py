@@ -16,15 +16,7 @@ class EvaluationState(TypedDict, total=False):
 def submit_assessment_node(
     state: EvaluationState,
 ) -> dict:
-    service = AssessmentService()
-    attempt = service.repository.create_attempt(
-        assessment_id=state["assessment_id"],
-        candidate_id=state["candidate_id"],
-        answers=state["answers"],
-    )
-    return {
-        "submission_id": int(attempt["id"])
-    }
+    raise RuntimeError("Core must persist an assessment attempt before AI evaluation")
 
 
 def evaluate_assessment_node(

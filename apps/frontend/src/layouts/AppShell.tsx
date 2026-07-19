@@ -4,9 +4,10 @@ import { Topbar } from './Topbar';
 import { useAuth } from '../auth/AuthContext';
 
 export function AppShell() {
-  const { user } = useAuth();
+  const { isLoading, user } = useAuth();
 
   // Redirect root '/' based on role
+  if (isLoading) return null;
   if (!user) {
     return <Navigate to="/login" replace />;
   }

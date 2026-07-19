@@ -35,57 +35,13 @@ class FakeGraph:
         }
 
 
-class FakeRepository:
-    def __init__(self):
-        self.created = None
-
-    def create_assessment(
-        self,
-        *,
-        candidate_id,
-        role,
-        title,
-        questions,
-        metadata=None,
-    ):
-        self.created = {
-            "candidate_id": candidate_id,
-            "role": role,
-            "title": title,
-            "questions": questions,
-            "metadata": metadata,
-        }
-        return {
-            "id": 101,
-            "candidate_id": candidate_id,
-            "target_role": role,
-            "assessment_name": title,
-            "created_at": None,
-            "questions": [
-                {
-                    "question_id": 201,
-                    "question_type": "mcq",
-                    "skill": "Python",
-                    "difficulty": "easy",
-                    "question": "What does len() return?",
-                    "options": [
-                        "Length",
-                        "Type",
-                        "Memory",
-                        "Index",
-                    ],
-                    "correct_answer": "Length",
-                    "rubric": None,
-                    "marks": 1,
-                }
-            ],
-        }
+class FakeCoreClient:
+    pass
 
 
-def test_create_assessment_uses_graph_and_repository_without_external_services():
-    repository = FakeRepository()
+def test_create_assessment_returns_validated_payload_without_persistence():
     service = AssessmentService(
-        repository=repository,
+        core_client=FakeCoreClient(),
         assessment_graph=FakeGraph(),
         conceptual_evaluation_chain=object(),
         recruiter_report_chain=object(),
@@ -98,7 +54,6 @@ def test_create_assessment_uses_graph_and_repository_without_external_services()
         selected_skills=["Python"],
     )
 
-    assert result["assessment_id"] == 101
     assert result["candidate_id"] == 7
-    assert result["total_questions"] == 1
-    assert repository.created["metadata"]["skill_weights"] == {"Python": 1.0}
+    assert len(result["questions"]) == 1
+    assert result["metadata"]["skill_weights"] == {"Python": 1.0}

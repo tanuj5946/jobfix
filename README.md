@@ -144,10 +144,11 @@ Set the AI environment variables for the current PowerShell session:
 
 ```powershell
 $env:GROQ_API_KEY="your-groq-api-key"
-$env:AI_DATABASE_URL="your-direct-postgresql-url"
+$env:CORE_API_URL="http://localhost:3001"
+$env:INTERNAL_API_KEY="your-shared-internal-api-key"
 ```
 
-`AI_DATABASE_URL` may be replaced with `DATABASE_URL` if the AI Service should use the same direct PostgreSQL connection. Start the service:
+The AI Service does not connect to PostgreSQL. Configure the same `INTERNAL_API_KEY` in Core and AI, then start the service:
 
 ```powershell
 uvicorn main:app --host 0.0.0.0 --port 8000

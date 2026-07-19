@@ -50,7 +50,7 @@ from assessment_engine.services.question_storage_service import (
 from assessment_engine.services.question_validation_service import (
     QuestionValidationService,
 )
-from question_bank.repository import QuestionRepository
+from retrieval.question_bank_client import QuestionBankClient
 from question_bank.generator.service import (
     question_generator_service as question_bank_generator_service,
 )
@@ -178,9 +178,9 @@ class QuestionBankSeedRequest(BaseModel):
     count_per_skill: int = 10
 
 
-def get_question_repository() -> QuestionRepository:
+def get_question_bank_client() -> QuestionBankClient:
     try:
-        return QuestionRepository()
+        return QuestionBankClient()
     except AIServiceError:
         raise
     except Exception as exc:
@@ -201,25 +201,6 @@ def build_question_embedding(question: QuestionCreate) -> list[float]:
         difficulty=question.difficulty,
         question_type=question.question_type,
         tags=question.tags,
-    )
-
-
-def add_question_to_repository(
-    repository: QuestionRepository,
-    question: QuestionCreate,
-) -> dict:
-    return repository.add_question(
-        role=question.role,
-        skill=question.skill,
-        category=question.category,
-        difficulty=question.difficulty,
-        question_type=question.question_type,
-        question_text=question.question_text,
-        options=question.options,
-        correct_answer=question.correct_answer,
-        rubric=question.rubric,
-        tags=question.tags,
-        embedding=build_question_embedding(question),
     )
 
 
@@ -254,9 +235,7 @@ def status():
         "status": "ready",
         "service": "ai-service",
         "version": "0.1.0",
-        "question_bank_configured": bool(
-            os.getenv("AI_DATABASE_URL") or os.getenv("DATABASE_URL")
-        ),
+        "core_api_configured": bool(os.getenv("CORE_API_URL") and os.getenv("INTERNAL_API_KEY")),
     }
 
 
@@ -407,23 +386,7 @@ async def analyze_job_description(payload: JobDescriptionAnalysisRequest):
 
 @app.post("/assessment/create")
 async def create_assessment(payload: AssessmentCreateRequest):
-    try:
-        validate_text(payload.target_role, field_name="target_role")
-        validate_text_list(payload.selected_skills, field_name="selected_skills")
-        return await asyncio.to_thread(
-            assessment_service.create_assessment,
-            candidate_id=payload.candidate_id,
-            target_role=payload.target_role,
-            selected_skills=payload.selected_skills,
-        )
-    except AIServiceError:
-        raise
-    except Exception as exc:
-        logger.error(f"Assessment creation failed: {exc}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Assessment creation failed: {str(exc)}",
-        )
+    raise HTTPException(status_code=410, detail="Create assessments through the Core API")
 
 
 @app.post("/assessment/validate")
@@ -446,38 +409,7 @@ async def validate_assessment(payload: AssessmentValidationRequest):
 
 @app.post("/assessment/submit")
 async def submit_assessment(payload: AssessmentSubmitRequest):
-    try:
-        if not payload.answers:
-            raise ValidationError("answers cannot be empty")
-        for answer in payload.answers:
-            validate_text(
-                answer.candidate_answer,
-                field_name="candidate_answer",
-            )
-        result = await asyncio.to_thread(
-            evaluation_graph.invoke,
-            {
-                "assessment_id": payload.assessment_id,
-                "candidate_id": payload.candidate_id,
-                "answers": [
-                    answer.model_dump()
-                    for answer in payload.answers
-                ],
-            },
-        )
-        return {
-            "submission_id": result["submission_id"],
-            "assessment_id": payload.assessment_id,
-            "result": result["result"],
-        }
-    except AIServiceError:
-        raise
-    except Exception as exc:
-        logger.error(f"Assessment submission failed: {exc}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Assessment submission failed: {str(exc)}",
-        )
+    raise HTTPException(status_code=410, detail="Submit assessments through the Core API")
 
 
 @app.post("/assessment/evaluate")
@@ -602,7 +534,7 @@ async def seed_question_bank(payload: QuestionBankSeedRequest):
         "role": payload.role,
         "results": results,
         "generated": sum(item["generated"] for item in results),
-        "stored": sum(item["stored"] for item in results),
+        "prepared": sum(item["prepared"] for item in results),
         "failed": sum(item["failed"] for item in results),
     }
 
@@ -625,33 +557,12 @@ async def validate_questions(payload: QuestionValidationRequest):
 
 @app.post("/questions", response_model=QuestionResponse, status_code=201)
 def create_question(question: QuestionCreate):
-    repository = get_question_repository()
-
-    try:
-        return add_question_to_repository(repository, question)
-    except Exception as exc:
-        logger.error(f"Question creation failed: {exc}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Question creation failed: {str(exc)}",
-        )
+    return {**question.model_dump(), "embedding": build_question_embedding(question)}
 
 
 @app.post("/questions/bulk", response_model=list[QuestionResponse], status_code=201)
 def create_questions_bulk(payload: BulkQuestionCreate):
-    repository = get_question_repository()
-
-    try:
-        return [
-            add_question_to_repository(repository, question)
-            for question in payload.questions
-        ]
-    except Exception as exc:
-        logger.error(f"Bulk question creation failed: {exc}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Bulk question creation failed: {str(exc)}",
-        )
+    return [{**question.model_dump(), "embedding": build_question_embedding(question)} for question in payload.questions]
 
 
 @app.get("/questions/search", response_model=list[QuestionResponse])
@@ -663,12 +574,12 @@ def search_questions(
     query_text: str | None = Query(default=None),
     limit: int = Query(default=10, ge=1, le=100),
 ):
-    repository = get_question_repository()
+    question_bank_client = get_question_bank_client()
 
     try:
         if query_text:
             embedding = embedding_service.embed_text(query_text)
-            return repository.hybrid_search(
+            return question_bank_client.hybrid_search(
                 embedding=embedding,
                 role=role,
                 skill=skill,
@@ -677,7 +588,7 @@ def search_questions(
                 limit=limit,
             )
 
-        return repository.search_by_metadata(
+        return question_bank_client.search_by_metadata(
             role=role,
             skill=skill,
             difficulty=difficulty,
@@ -694,16 +605,4 @@ def search_questions(
 
 @app.delete("/questions/{question_id}", status_code=204)
 def delete_question(question_id: int):
-    repository = get_question_repository()
-
-    try:
-        deleted = repository.delete_question(question_id)
-    except Exception as exc:
-        logger.error(f"Question deletion failed: {exc}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Question deletion failed: {str(exc)}",
-        )
-
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Question not found")
+    raise HTTPException(status_code=410, detail="Question deletion is owned by the Core API")

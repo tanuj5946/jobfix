@@ -5,7 +5,7 @@ JobFix is a single application repository with one React frontend, one Express c
 ```mermaid
 flowchart LR
   Browser[Candidate / Recruiter / Admin browser] --> Frontend[React + Vite frontend]
-  Frontend -->|JWT REST API| Core[Core Service: Express + Prisma]
+  Frontend -->|HTTP-only cookie REST API| Core[Core Service: Express + Prisma]
   Core --> Database[(PostgreSQL)]
   Core -->|internal HTTP| AI[AI Service: FastAPI + LangGraph]
   AI --> Database
@@ -17,14 +17,14 @@ flowchart LR
 | Application | Responsibility |
 |---|---|
 | `apps/frontend` | One role-aware React SPA for candidate, recruiter, and admin experiences. |
-| `apps/core-service` | JWT authentication, authorization, business rules, CRUD, persisted analytics, and the public REST API. |
+| `apps/core-service` | HTTP-only cookie authentication backed by JWT verification, authorization, business rules, CRUD, persisted analytics, and the public REST API. |
 | `apps/ai-service` | Resume parsing, job-description analysis, question retrieval/generation, validation, and assessment evaluation. |
 
 The frontend calls only the Core Service. The Core Service calls the AI Service through `aiServiceClient`; the AI Service is not a browser-facing API.
 
 ## Core domains
 
-- Identity: users, JWT authentication, candidate/recruiter/admin roles.
+- Identity: users, HTTP-only cookie authentication backed by JWTs, candidate/recruiter/admin roles.
 - Candidate: profiles, resume parsing output, skills, applications, assessments, results.
 - Recruiter: profile-backed company, job lifecycle, candidate ranking.
 - Hiring: job skill extraction, applications, resume match, application-linked assessment.

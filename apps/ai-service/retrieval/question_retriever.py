@@ -1,7 +1,7 @@
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 
-from question_bank.repository import QuestionRepository
+from retrieval.question_bank_client import QuestionBankClient
 from retrieval.embedding_service import EmbeddingService
 from shared.cache import question_cache
 
@@ -9,10 +9,10 @@ from shared.cache import question_cache
 class QuestionRetriever:
     def __init__(
         self,
-        repository: QuestionRepository | None = None,
+        question_bank_client: QuestionBankClient | None = None,
         embedding_service: EmbeddingService | None = None,
     ):
-        self.repository = repository or QuestionRepository()
+        self.question_bank_client = question_bank_client or QuestionBankClient()
         self.embedding_service = embedding_service or EmbeddingService()
 
     def retrieve_for_blueprint(
@@ -97,7 +97,7 @@ class QuestionRetriever:
                 "question_type": job["question_type"],
                 "limit": job["count"],
             },
-            lambda: self.repository.hybrid_search(
+            lambda: self.question_bank_client.hybrid_search(
                 embedding=embedding,
                 role=job["role"],
                 skill=job["skill"],

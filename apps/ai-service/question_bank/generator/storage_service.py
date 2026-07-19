@@ -1,15 +1,14 @@
-from question_bank.repository import QuestionRepository
 from retrieval.embedding_service import EmbeddingService
 
 
 class QuestionStorageService:
     def __init__(self):
-        self.repository = QuestionRepository()
         self.embedding_service = EmbeddingService()
 
     def store_questions(self, questions):
         stored = 0
         failed = 0
+        prepared = []
 
         for question in questions:
             try:
@@ -17,20 +16,7 @@ class QuestionStorageService:
                     question.question_text
                 )
 
-                self.repository.add_question(
-                    role=question.role,
-                    skill=question.skill,
-                    category=question.category,
-                    difficulty=question.difficulty,
-                    question_type=question.question_type,
-                    question_text=question.question_text,
-                    options=question.options,
-                    correct_answer=question.correct_answer,
-                    rubric=question.rubric,
-                    tags=question.tags,
-                    embedding=embedding,
-                )
-
+                prepared.append({**question.model_dump(), "embedding": embedding})
                 stored += 1
 
             except Exception as exc:
@@ -43,8 +29,9 @@ class QuestionStorageService:
 
         return {
             "generated": len(questions),
-            "stored": stored,
+            "prepared": stored,
             "failed": failed,
+            "questions": prepared,
         }
 
 

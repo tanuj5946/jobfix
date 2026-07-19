@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-from question_bank.repository import QuestionRepository
 from retrieval.embedding_service import EmbeddingService
 
 
@@ -11,10 +10,8 @@ logger = logging.getLogger("ai-service")
 class QuestionStorageService:
     def __init__(
         self,
-        repository: QuestionRepository | None = None,
         embedding_service: EmbeddingService | None = None,
     ):
-        self.repository = repository or QuestionRepository()
         self.embedding_service = embedding_service or EmbeddingService()
 
     def store_questions(
@@ -32,23 +29,10 @@ class QuestionStorageService:
                 question_type=question["question_type"],
                 tags=question.get("tags") or [],
             )
-            stored = self.repository.add_question(
-                role=question["role"],
-                skill=question["skill"],
-                category=question.get("category"),
-                difficulty=question["difficulty"],
-                question_type=question["question_type"],
-                question_text=question["question_text"],
-                options=question.get("options"),
-                correct_answer=question.get("correct_answer"),
-                rubric=question.get("rubric"),
-                tags=question.get("tags") or [],
-                embedding=embedding,
-            )
-            stored_questions.append(stored)
+            stored_questions.append({**question, "embedding": embedding})
 
         logger.info(
-            "Stored %s validated generated questions",
+            "Prepared %s validated generated questions for Core persistence",
             len(stored_questions),
         )
         return stored_questions

@@ -15,9 +15,7 @@ from assessment_engine.chains.recruiter_report_chain import (
 )
 from assessment_engine.graph.assessment_graph import build_assessment_graph
 from assessment_engine.prompts.registry import all_prompt_metadata
-from assessment_engine.repositories.assessment_repository import (
-    AssessmentRepository,
-)
+from assessment_engine.core_assessment_client import CoreAssessmentClient
 from shared.cache import llm_cache
 from shared.errors import ValidationError
 from shared.observability import metrics_registry
@@ -29,13 +27,13 @@ logger = logging.getLogger("ai-service")
 class AssessmentService:
     def __init__(
         self,
-        repository: AssessmentRepository | None = None,
+        core_client: CoreAssessmentClient | None = None,
         assessment_graph=None,
         conceptual_evaluation_chain=None,
         recruiter_report_chain=None,
         learning_recommendation_chain=None,
     ):
-        self.repository = repository or AssessmentRepository()
+        self.core_client = core_client or CoreAssessmentClient()
         self.assessment_graph = assessment_graph or build_assessment_graph()
         self.conceptual_evaluation_chain = (
             conceptual_evaluation_chain
@@ -118,20 +116,20 @@ class AssessmentService:
         ]
         self._validate_assessment_questions(normalized_questions)
 
-        saved = self.repository.create_assessment(
-            candidate_id=candidate_id,
-            role=role,
-            title=final_assessment["title"],
-            questions=normalized_questions,
-            metadata=metadata,
-        )
-        return self._assessment_response(saved)
+        # Core owns all persistence. Return the validated payload for Core.
+        return {
+            **final_assessment,
+            "candidate_id": candidate_id,
+            "role": role,
+            "questions": normalized_questions,
+            "metadata": metadata or {},
+        }
 
     def load_assessment(
         self,
         assessment_id: int,
     ) -> dict[str, Any] | None:
-        assessment = self.repository.load_assessment(assessment_id)
+        assessment = self.core_client.load_assessment(assessment_id)
         if not assessment:
             return None
         return self._assessment_response(assessment)
@@ -143,28 +141,7 @@ class AssessmentService:
         candidate_id: int,
         answers: list[dict[str, Any]],
     ) -> dict[str, Any]:
-        assessment = self.repository.load_assessment(assessment_id)
-        if not assessment:
-            raise ValidationError("Assessment not found")
-        self._validate_submission_answers(
-            questions=assessment.get("questions", []),
-            answers=answers,
-        )
-
-        attempt = self.repository.create_attempt(
-            assessment_id=assessment_id,
-            candidate_id=candidate_id,
-            answers=answers,
-        )
-        result = self.evaluate_assessment(
-            assessment_id=assessment_id,
-            attempt_id=int(attempt["id"]),
-        )
-        return {
-            "submission_id": int(attempt["id"]),
-            "assessment_id": assessment_id,
-            "result": result,
-        }
+        raise ValidationError("Assessment submission must be handled by Core")
 
     def evaluate_assessment(
         self,
@@ -174,8 +151,8 @@ class AssessmentService:
         skill_weights: dict[str, float] | None = None,
         missing_core_skills: list[str] | None = None,
     ) -> dict[str, Any]:
-        assessment = self.repository.load_assessment(assessment_id)
-        attempt = self.repository.load_attempt(attempt_id)
+        assessment = self.core_client.load_assessment(assessment_id)
+        attempt = self.core_client.load_attempt(attempt_id)
 
         if not assessment or not attempt:
             raise ValueError("Assessment or submission attempt not found")
@@ -198,16 +175,6 @@ class AssessmentService:
                     ),
                     attempt["answers"],
                 )
-            )
-
-        for evaluated in evaluated_answers:
-            self.repository.update_answer_evaluation(
-                answer_id=evaluated["answer_id"],
-                score=evaluated["score"],
-                evaluation_json=evaluated,
-                feedback=evaluated.get("feedback"),
-                is_correct=evaluated.get("is_correct"),
-                marks_awarded=evaluated["marks_awarded"],
             )
 
         metrics_registry.observe(
@@ -239,11 +206,6 @@ class AssessmentService:
         learning_recommendations = self._build_learning_recommendations(
             weak_skills
         )
-        self.repository.save_learning_recommendations(
-            candidate_id=assessment["candidate_id"],
-            recommendations=learning_recommendations,
-        )
-
         result = {
             "overall_score": overall_score,
             "overall_level": assessment_grade.lower(),
@@ -257,11 +219,6 @@ class AssessmentService:
             "prompt_versions": all_prompt_metadata(),
             "answers": evaluated_answers,
         }
-        self.repository.save_result(
-            assessment_id=assessment_id,
-            attempt_id=attempt_id,
-            result=result,
-        )
         metrics_registry.observe("average_ai_score", overall_score)
         metrics_registry.observe(
             "average_recruiter_score",
@@ -279,13 +236,13 @@ class AssessmentService:
         self,
         assessment_id: int,
     ) -> dict[str, Any] | None:
-        return self.repository.load_result(assessment_id)
+        return self.core_client.load_result(assessment_id)
 
     def load_report(
         self,
         assessment_id: int,
     ) -> dict[str, Any] | None:
-        result = self.repository.load_result(assessment_id)
+        result = self.core_client.load_result(assessment_id)
         if not result:
             return None
         return result.get("recruiter_report_json")
@@ -294,7 +251,7 @@ class AssessmentService:
         self,
         candidate_id: int,
     ) -> list[dict[str, Any]]:
-        return self.repository.load_candidate_history(candidate_id)
+        return self.core_client.load_candidate_history(candidate_id)
 
     def _evaluate_answer(
         self,

@@ -13,13 +13,6 @@ export interface User {
   createdAt: string;
 }
 
-export interface AuthTokenPayload {
-  id: number;
-  email: string;
-  role: UserRole;
-  exp: number;
-}
-
 // ---- Candidate ----
 export interface CandidateProfile {
   id: number;

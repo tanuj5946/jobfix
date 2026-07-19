@@ -6,11 +6,10 @@ apps/ai-service
     chains/          LangChain chains
     graph/           LangGraph workflows
     prompts/         Prompt text and version registry
-    repositories/    Database persistence
     schemas/         Pydantic request/response/domain models
     services/        Business logic and orchestration
-  question_bank/     Question-bank schemas and repository
-  retrieval/         Embeddings, vector store, RAG retrieval
+  question_bank/     Question-bank schemas and generation
+  retrieval/         Embeddings and Core-backed RAG retrieval
   resume_parser/     Existing resume parser
   shared/
     cache/           TTL caches

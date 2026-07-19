@@ -21,8 +21,8 @@ export function RegisterPage() {
     setLoading(true);
     try {
       const payload = { ...form, companyName: form.role === 'recruiter' ? form.companyName : undefined };
-      const { accessToken, user } = await authApi.register(payload);
-      login(accessToken, user);
+      const { user } = await authApi.register(payload);
+      login(user);
       navigate(user.role === 'candidate' ? '/candidate/resume-upload' : '/recruiter/dashboard', { replace: true });
     } catch {
       setError('Registration failed. Please try again.');

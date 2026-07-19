@@ -1,6 +1,5 @@
 from shared.errors.exceptions import (
     AIServiceError,
-    DatabaseError,
     EmbeddingError,
     LLMError,
     RetrievalError,
@@ -10,7 +9,6 @@ from shared.errors.exceptions import (
 
 __all__ = [
     "AIServiceError",
-    "DatabaseError",
     "EmbeddingError",
     "LLMError",
     "RetrievalError",

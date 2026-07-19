@@ -16,8 +16,8 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { accessToken, user } = await authApi.login({ email, password });
-      login(accessToken, user);
+      const { user } = await authApi.login({ email, password });
+      login(user);
       navigate(
         user.role === 'candidate'
           ? '/candidate/dashboard'
