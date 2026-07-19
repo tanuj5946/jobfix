@@ -10,6 +10,7 @@ import { apiRateLimit }   from './middleware/rateLimit.middleware';
 import { HttpError }      from './utils/httpError';
 
 const app = express();
+app.set("trust proxy" ,1)
 const allowedOrigins = env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean);
 
 // Prisma uses JavaScript bigint for BIGINT columns (for example,
