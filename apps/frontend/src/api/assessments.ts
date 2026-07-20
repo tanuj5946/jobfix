@@ -43,7 +43,11 @@ export const assessmentsApi = {
   },
 
   submitAll: async (assessmentId: number, payload: SubmitAssessmentPayload): Promise<AssessmentResult> => {
-    const { data } = await apiClient.post<ApiResponse<AssessmentResult>>(`/assessments/${assessmentId}/submit`, payload);
+    const { data } = await apiClient.post<ApiResponse<AssessmentResult>>(
+      `/assessments/${assessmentId}/submit`,
+      payload,
+      { timeout: 180_000 },
+    );
     return data.data;
   },
 

@@ -245,12 +245,7 @@ class AiServiceClient {
   ): Promise<T> {
     try {
       const response = await request();
-
-console.log("\n================ AI RESPONSE ================");
-console.dir(response.data, { depth: null });
-console.log("=============================================\n");
-
-return response.data;
+      return response.data;
     } catch (error) {
       await new Promise(resolve => setTimeout(resolve, 300));
 

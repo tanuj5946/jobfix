@@ -157,8 +157,8 @@ export function AssessmentPage() {
                       <input
                         type="radio"
                         name={`question-${question.id}`}
-                        value={normalized.id}
-                        checked={answers[question.id] === normalized.id}
+                        value={normalized.text}
+                        checked={answers[question.id] === normalized.text}
                         onChange={event => setAnswer(question.id, event.target.value)}
                         className="h-4 w-4 border-gray-300 text-brand-600 focus:ring-brand-500"
                       />
@@ -208,7 +208,7 @@ function normalizeOption(option: { id: string; text: string } | string, index: n
 function getErrorMessage(err: unknown, fallback: string) {
   if (axios.isAxiosError(err)) {
     if (err.code === 'ECONNABORTED') {
-      return 'Assessment generation is still running. Please wait a moment and try again.';
+      return 'Assessment evaluation is taking longer than expected. Your answers may still be processing; wait a moment before trying again.';
     }
 
     const message = err.response?.data?.message;

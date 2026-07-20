@@ -35,7 +35,11 @@ export class AssessmentRepository {
         });
       }
       const assessment = await tx.assessment.findUniqueOrThrow({
-        where: { id: assessmentId }, select: { candidateId: true },
+        where: { id: assessmentId },
+        select: {
+          candidateId: true,
+          skills: { include: { skill: { select: { id: true, name: true } } } },
+        },
       });
       for (const recommendation of recommendations) {
         const skill = await tx.skill.upsert({
@@ -58,6 +62,33 @@ export class AssessmentRepository {
         promptVersionsJson: (evaluation.prompt_versions ?? {}) as Prisma.InputJsonValue,
       };
       await tx.assessmentResult.upsert({ where: { assessmentId }, update: data, create: { assessmentId, ...data } });
+
+      const assessedAt = new Date();
+      const assessmentSkillIds = new Map(
+        assessment.skills.map(item => [item.skill.name.trim().toLocaleLowerCase(), item.skill.id]),
+      );
+      const skillBreakdown = evaluation.skill_breakdown;
+
+      if (skillBreakdown && typeof skillBreakdown === 'object' && !Array.isArray(skillBreakdown)) {
+        for (const [skillName, rawScore] of Object.entries(skillBreakdown)) {
+          const score = Number(rawScore);
+          const skillId = assessmentSkillIds.get(skillName.trim().toLocaleLowerCase());
+          if (!skillId || !Number.isFinite(score)) continue;
+
+          const verifiedScore = Math.max(0, Math.min(100, Number(score.toFixed(2))));
+          const verifiedLevel = verifiedScore >= 80
+            ? 'advanced'
+            : verifiedScore >= 60
+              ? 'intermediate'
+              : 'beginner';
+
+          await tx.candidateSkill.upsert({
+            where: { candidateId_skillId: { candidateId: assessment.candidateId, skillId } },
+            update: { verifiedScore, verifiedLevel, lastAssessedAt: assessedAt, source: 'assessment' },
+            create: { candidateId: assessment.candidateId, skillId, verifiedScore, verifiedLevel, lastAssessedAt: assessedAt, source: 'assessment' },
+          });
+        }
+      }
     },
   {
     timeout: 60000,
