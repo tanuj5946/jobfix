@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import { AppShell } from '../layouts/AppShell';
@@ -5,56 +6,54 @@ import { ProtectedRoute } from '../components/ProtectedRoute';
 import { RoleGuard } from '../components/RoleGuard';
 
 // Auth pages
-import { LoginPage } from '../pages/auth/LoginPage';
-import { RegisterPage } from '../pages/auth/RegisterPage';
-import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage';
-import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
-import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
+import { LandingPage } from '../pages/LandingPage';
+const LoginPage = lazy(() => import('../pages/auth/LoginPage').then(module => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() => import('../pages/auth/RegisterPage').then(module => ({ default: module.RegisterPage })));
+const VerifyEmailPage = lazy(() => import('../pages/auth/VerifyEmailPage').then(module => ({ default: module.VerifyEmailPage })));
+const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage').then(module => ({ default: module.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage').then(module => ({ default: module.ResetPasswordPage })));
 
 // Candidate pages
-import { CandidateDashboardPage } from '../pages/candidate/DashboardPage';
-import { ResumeUploadPage } from '../pages/candidate/ResumeUploadPage';
-import { SkillSelectionPage } from '../pages/candidate/SkillSelectionPage';
-import { AssessmentPage } from '../pages/candidate/AssessmentPage';
-import { AssessmentResultsPage } from '../pages/candidate/AssessmentResultsPage';
-import { VerifiedProfilePage } from '../pages/candidate/VerifiedProfilePage';
-import { CareerCoachPage } from '../pages/candidate/CareerCoachPage';
-import { CandidateJobsPage } from '../pages/candidate/JobsPage';
-import { ApplicationsPage } from '../pages/candidate/ApplicationsPage';
+const CandidateDashboardPage = lazy(() => import('../pages/candidate/DashboardPage').then(module => ({ default: module.CandidateDashboardPage })));
+const ResumeUploadPage = lazy(() => import('../pages/candidate/ResumeUploadPage').then(module => ({ default: module.ResumeUploadPage })));
+const SkillSelectionPage = lazy(() => import('../pages/candidate/SkillSelectionPage').then(module => ({ default: module.SkillSelectionPage })));
+const AssessmentPage = lazy(() => import('../pages/candidate/AssessmentPage').then(module => ({ default: module.AssessmentPage })));
+const AssessmentResultsPage = lazy(() => import('../pages/candidate/AssessmentResultsPage').then(module => ({ default: module.AssessmentResultsPage })));
+const VerifiedProfilePage = lazy(() => import('../pages/candidate/VerifiedProfilePage').then(module => ({ default: module.VerifiedProfilePage })));
+const CareerCoachPage = lazy(() => import('../pages/candidate/CareerCoachPage').then(module => ({ default: module.CareerCoachPage })));
+const CandidateJobsPage = lazy(() => import('../pages/candidate/JobsPage').then(module => ({ default: module.CandidateJobsPage })));
+const ApplicationsPage = lazy(() => import('../pages/candidate/ApplicationsPage').then(module => ({ default: module.ApplicationsPage })));
 
 // Recruiter pages
-import { RecruiterDashboardPage } from '../pages/recruiter/DashboardPage';
-import { PostJobPage } from '../pages/recruiter/PostJobPage';
-import { RankedCandidatesPage } from '../pages/recruiter/RankedCandidatesPage';
-import { CandidateDetailPage } from '../pages/recruiter/CandidateDetailPage';
-import { CompanyPage } from '../pages/recruiter/CompanyPage';
-import { AdminPage } from '../pages/admin/AdminPage';
+const RecruiterDashboardPage = lazy(() => import('../pages/recruiter/DashboardPage').then(module => ({ default: module.RecruiterDashboardPage })));
+const PostJobPage = lazy(() => import('../pages/recruiter/PostJobPage').then(module => ({ default: module.PostJobPage })));
+const RankedCandidatesPage = lazy(() => import('../pages/recruiter/RankedCandidatesPage').then(module => ({ default: module.RankedCandidatesPage })));
+const CandidateDetailPage = lazy(() => import('../pages/recruiter/CandidateDetailPage').then(module => ({ default: module.CandidateDetailPage })));
+const CompanyPage = lazy(() => import('../pages/recruiter/CompanyPage').then(module => ({ default: module.CompanyPage })));
+const AdminPage = lazy(() => import('../pages/admin/AdminPage').then(module => ({ default: module.AdminPage })));
 
 // Shared
-import { NotFoundPage } from '../pages/NotFoundPage';
-import { UnauthorizedPage } from '../pages/UnauthorizedPage';
-import { useAuth } from '../auth/AuthContext';
+const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then(module => ({ default: module.NotFoundPage })));
+const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage').then(module => ({ default: module.UnauthorizedPage })));
 import { FEATURES } from '../config/features';
 
-function RoleHomeRedirect() {
-  const { user } = useAuth();
-  const role = user?.role;
-  const destination = role === 'recruiter'
-    ? '/recruiter/dashboard'
-    : role === 'admin'
-      ? '/admin'
-      : '/candidate/dashboard';
-  return <Navigate to={destination} replace />;
+function PageLoader() {
+  return <div className="py-12 text-center text-sm text-slate-500">Loading page…</div>;
+}
+
+function loadPage(page: ReactNode) {
+  return <Suspense fallback={<PageLoader />}>{page}</Suspense>;
 }
 
 export const router = createBrowserRouter([
   // ── Public routes ────────────────────────────────────────
-  { path: '/login',    element: <LoginPage /> },
-  { path: '/register', element: <RegisterPage /> },
-  { path: '/verify-email', element: <VerifyEmailPage /> },
-  { path: '/forgot-password', element: <ForgotPasswordPage /> },
-  { path: '/reset-password', element: <ResetPasswordPage /> },
-  { path: '/unauthorized', element: <UnauthorizedPage /> },
+  { path: '/',         element: <LandingPage /> },
+  { path: '/login',    element: loadPage(<LoginPage />) },
+  { path: '/register', element: loadPage(<RegisterPage />) },
+  { path: '/verify-email', element: loadPage(<VerifyEmailPage />) },
+  { path: '/forgot-password', element: loadPage(<ForgotPasswordPage />) },
+  { path: '/reset-password', element: loadPage(<ResetPasswordPage />) },
+  { path: '/unauthorized', element: loadPage(<UnauthorizedPage />) },
 
   // ── Protected shell ──────────────────────────────────────
   {
@@ -64,26 +63,23 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      // Root → redirect based on role (handled in AppShell)
-      { index: true, element: <RoleHomeRedirect /> },
-
       // ── Candidate routes ──────────────────────────────────
       {
         path: 'candidate',
         element: <RoleGuard allowedRole="candidate" />,
         children: [
           { index: true,               element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard',         element: <CandidateDashboardPage /> },
-          { path: 'resume-upload',     element: <ResumeUploadPage /> },
-          { path: 'skills',            element: <SkillSelectionPage /> },
-          { path: 'assessment',        element: <AssessmentPage /> },
-          { path: 'assessment/:id/results', element: <AssessmentResultsPage /> },
-          { path: 'profile',           element: <VerifiedProfilePage /> },
+          { path: 'dashboard',         element: loadPage(<CandidateDashboardPage />) },
+          { path: 'resume-upload',     element: loadPage(<ResumeUploadPage />) },
+          { path: 'skills',            element: loadPage(<SkillSelectionPage />) },
+          { path: 'assessment',        element: loadPage(<AssessmentPage />) },
+          { path: 'assessment/:id/results', element: loadPage(<AssessmentResultsPage />) },
+          { path: 'profile',           element: loadPage(<VerifiedProfilePage />) },
           ...(FEATURES.CAREER_COACH
-            ? [{ path: 'career-coach', element: <CareerCoachPage /> }]
+            ? [{ path: 'career-coach', element: loadPage(<CareerCoachPage />) }]
             : []),
-          { path: 'jobs',              element: <CandidateJobsPage /> },
-          { path: 'applications',      element: <ApplicationsPage /> },
+          { path: 'jobs',              element: loadPage(<CandidateJobsPage />) },
+          { path: 'applications',      element: loadPage(<ApplicationsPage />) },
         ],
       },
 
@@ -93,23 +89,27 @@ export const router = createBrowserRouter([
         element: <RoleGuard allowedRole="recruiter" />,
         children: [
           { index: true,                        element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard',                  element: <RecruiterDashboardPage /> },
-          { path: 'jobs/new',                   element: <PostJobPage /> },
-           { path: 'jobs/:jobId/candidates',     element: <RankedCandidatesPage /> },
-           { path: 'candidates/:candidateId',    element: <CandidateDetailPage /> },
-           { path: 'company',                     element: <CompanyPage /> },
+          { path: 'dashboard',                  element: loadPage(<RecruiterDashboardPage />) },
+          { path: 'jobs/new',                   element: loadPage(<PostJobPage />) },
+           { path: 'jobs/:jobId/candidates',     element: loadPage(<RankedCandidatesPage />) },
+           { path: 'candidates/:candidateId',    element: loadPage(<CandidateDetailPage />) },
+           { path: 'company',                     element: loadPage(<CompanyPage />) },
         ],
       },
       {
         path: 'admin',
         element: <RoleGuard allowedRole="admin" />,
         children: [
-          { index: true, element: <AdminPage /> },
+          { index: true, element: loadPage(<AdminPage />) },
+          { path: 'analytics', element: loadPage(<AdminPage />) },
+          { path: 'people', element: loadPage(<AdminPage />) },
+          { path: 'operations', element: loadPage(<AdminPage />) },
+          { path: 'question-bank', element: loadPage(<AdminPage />) },
         ],
       },
     ],
   },
 
   // ── 404 ──────────────────────────────────────────────────
-  { path: '*', element: <NotFoundPage /> },
+  { path: '*', element: loadPage(<NotFoundPage />) },
 ]);

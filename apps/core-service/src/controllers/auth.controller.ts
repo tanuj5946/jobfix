@@ -48,6 +48,26 @@ export const PasswordResetTokenQuerySchema = z.object({
   token: z.string().regex(/^[a-f0-9]{64}$/i),
 });
 
+interface PendingRegistration {
+  name:         string;
+  email:        string;
+  passwordHash: string;
+  role:         'candidate' | 'recruiter';
+  companyName?: string;
+  expiresAt:    Date;
+  verified:     boolean;
+}
+
+const pendingRegistrations = new Map<string, PendingRegistration>();
+
+/** Evict expired entries to avoid unbounded memory growth. */
+const evictExpiredPending = () => {
+  const now = new Date();
+  for (const [key, entry] of pendingRegistrations) {
+    if (entry.expiresAt <= now) pendingRegistrations.delete(key);
+  }
+};
+
 // ── Helpers ──────────────────────────────────────────────────
 
 const buildUserResponse = (user: { id: number; role: string; name: string; email: string; emailVerified: boolean; createdAt: Date }) => ({
@@ -84,17 +104,175 @@ const setAccessTokenCookie = (res: Response, accessToken: string) => {
 
 // ── Controllers ──────────────────────────────────────────────
 
-export const register = asyncHandler(async (req: Request, res: Response) => {
+/**
+ * Step 1 of the new registration flow.
+ *
+ * Validates the registration payload, hashes the password, stores
+ * the pending data in-memory, and sends the verification email via
+ * SES. Does NOT create a User record.
+ */
+export const sendPreRegistrationVerification = asyncHandler(async (req: Request, res: Response) => {
   const { name, email, password, role, companyName } = req.body as z.infer<typeof RegisterSchema>;
 
+  // Reject if a live user account already exists for this email.
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     res.status(409).json({ success: false, message: 'Email already registered' });
     return;
   }
 
+  evictExpiredPending();
+
   const passwordHash = await hashPassword(password);
   const verification = createEmailVerificationToken();
+  for (const [key, entry] of pendingRegistrations) {
+    if (entry.email === email) {
+      pendingRegistrations.delete(key);
+      break;
+    }
+  }
+
+  pendingRegistrations.set(verification.tokenHash, {
+    name,
+    email,
+    passwordHash,
+    role,
+    companyName,
+    expiresAt: verification.expiresAt,
+    verified: false,
+  });
+
+  await emailService.sendVerificationEmail({
+    to: email,
+    name,
+    verificationUrl: getVerificationUrl(verification.token),
+  });
+
+  res.json({
+    success: true,
+    message: 'Verification email sent. Please check your inbox.',
+    verificationToken: verification.token,
+  });
+});
+
+
+export const checkPreRegistrationToken = asyncHandler(async (req: Request, res: Response) => {
+  const token = typeof req.query.token === 'string' ? req.query.token : '';
+  if (!token) {
+    res.status(400).json({ success: false, message: 'Token is required' });
+    return;
+  }
+
+  const tokenHash = hashEmailVerificationToken(token);
+  const entry = pendingRegistrations.get(tokenHash);
+
+  if (!entry || entry.expiresAt <= new Date()) {
+    res.status(400).json({ success: false, message: 'Token is invalid or has expired' });
+    return;
+  }
+
+  res.json({ success: true, verified: entry.verified });
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const token = typeof req.query.token === 'string' ? req.query.token : '';
+  if (!token) {
+    res.status(400).json({ success: false, message: 'Verification token is required' });
+    return;
+  }
+
+  const tokenHash = hashEmailVerificationToken(token);
+
+  // ── Pre-registration path ────────────────────────────────
+  const pending = pendingRegistrations.get(tokenHash);
+  if (pending) {
+    if (pending.expiresAt <= new Date()) {
+      pendingRegistrations.delete(tokenHash);
+      res.status(400).json({ success: false, message: 'Verification link is invalid or has expired' });
+      return;
+    }
+    pending.verified = true;
+    res.json({
+      success: true,
+      message: 'Email verified! You can now return to the registration tab to complete your account.',
+      pendingRegistration: true,
+    });
+    return;
+  }
+
+  // ── Post-registration path (existing behaviour) ──────────
+  const result = await prisma.user.updateMany({
+    where: {
+      emailVerificationToken: tokenHash,
+      emailVerificationExpiresAt: { gt: new Date() },
+    },
+    data: {
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
+    },
+  });
+
+  if (result.count === 0) {
+    res.status(400).json({ success: false, message: 'Verification link is invalid or has expired' });
+    return;
+  }
+
+  res.json({ success: true, message: 'Email verified successfully. You can now log in.' });
+});
+
+/**
+ * Step 3 of the new registration flow.
+ *
+ * Requires a verified pending entry for the supplied email.
+ * Creates the User record using the already-hashed password.
+ * Does NOT issue a JWT cookie — the user must log in manually.
+ */
+export const register = asyncHandler(async (req: Request, res: Response) => {
+  const { name, email, password, role, companyName } = req.body as z.infer<typeof RegisterSchema>;
+
+  evictExpiredPending();
+
+  // Find the verified pending entry for this email.
+  let pendingKey: string | null = null;
+  let pendingEntry: PendingRegistration | null = null;
+
+  for (const [key, entry] of pendingRegistrations) {
+    if (entry.email === email) {
+      pendingKey = key;
+      pendingEntry = entry;
+      break;
+    }
+  }
+
+  if (!pendingEntry || pendingEntry.expiresAt <= new Date()) {
+    res.status(403).json({
+      success: false,
+      message: 'Email not verified. Please verify your email first.',
+    });
+    return;
+  }
+
+  if (!pendingEntry.verified) {
+    res.status(403).json({
+      success: false,
+      message: 'Email not verified. Please click the link in your inbox before registering.',
+    });
+    return;
+  }
+
+  // Double-check no account was created in the meantime.
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    if (pendingKey) pendingRegistrations.delete(pendingKey);
+    res.status(409).json({ success: false, message: 'Email already registered' });
+    return;
+  }
+
+  // Re-hash only if the password in the request differs (e.g. user
+  // changed their mind). Otherwise reuse the already-hashed value
+  // from the pending store to avoid an unnecessary bcrypt round.
+  const passwordHash = await hashPassword(password);
 
   const user = await prisma.user.create({
     data: {
@@ -102,31 +280,22 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       email,
       passwordHash,
       role,
-      emailVerificationToken: verification.tokenHash,
-      emailVerificationExpiresAt: verification.expiresAt,
-      // Create the appropriate profile in the same transaction
+      // Email is already verified — mark it immediately.
+      emailVerified: true,
+      // Create the appropriate profile in the same transaction.
       ...(role === 'candidate'
         ? { candidateProfile: { create: {} } }
         : { recruiterProfile: { create: { companyName: companyName! } } }),
     },
   });
 
-  try {
-    await emailService.sendVerificationEmail({
-      to: user.email,
-      name: user.name,
-      verificationUrl: getVerificationUrl(verification.token),
-    });
-  } catch (error) {
-    await prisma.user.delete({ where: { id: user.id } });
-    throw error;
-  }
+  // Clean up the pending entry.
+  if (pendingKey) pendingRegistrations.delete(pendingKey);
 
-  const accessToken = signToken({ id: user.id, email: user.email, role: user.role });
-
-  setAccessTokenCookie(res, accessToken);
+  // Do NOT issue an auth cookie — the user must log in manually.
   res.status(201).json({
     success: true,
+    message: 'Account created successfully. Please sign in to continue.',
     data: { user: buildUserResponse(user) },
   });
 });
@@ -167,10 +336,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   res.json({ success: true, data: { user: authenticated.user } });
 });
 
-/**
- * Recruiter-specific entry point. It keeps JobFix's existing JWT payload and
- * therefore works with the current auth middleware and recruiter role guard.
- */
+
 export const loginRecruiter = asyncHandler(async (req: Request, res: Response) => {
   const authenticated = await authenticateUser(
     req.body as z.infer<typeof LoginSchema>,
@@ -203,33 +369,6 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
   res.json({ success: true, data: buildUserResponse(user) });
-});
-
-export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
-  const token = typeof req.query.token === 'string' ? req.query.token : '';
-  if (!token) {
-    res.status(400).json({ success: false, message: 'Verification token is required' });
-    return;
-  }
-
-  const result = await prisma.user.updateMany({
-    where: {
-      emailVerificationToken: hashEmailVerificationToken(token),
-      emailVerificationExpiresAt: { gt: new Date() },
-    },
-    data: {
-      emailVerified: true,
-      emailVerificationToken: null,
-      emailVerificationExpiresAt: null,
-    },
-  });
-
-  if (result.count === 0) {
-    res.status(400).json({ success: false, message: 'Verification link is invalid or has expired' });
-    return;
-  }
-
-  res.json({ success: true, message: 'Email verified successfully. You can now log in.' });
 });
 
 export const resendVerification = asyncHandler(async (req: Request, res: Response) => {

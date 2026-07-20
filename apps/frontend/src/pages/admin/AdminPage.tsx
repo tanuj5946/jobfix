@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import { adminApi, type AnalyticsDashboard, type AdminOverview, type AdminUser, type QuestionSeedResult } from '../../api/admin';
 import { skillsApi } from '../../api/skills';
 import type { Skill } from '../../types';
 
 export function AdminPage() {
+  const { pathname } = useLocation();
+  const section = pathname.split('/')[2] || 'overview';
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsDashboard | null>(null);
@@ -74,23 +77,35 @@ export function AdminPage() {
     }
   };
 
+  const sectionInfo: Record<string, { title: string; description: string }> = {
+    overview: { title: 'Admin overview', description: 'Monitor the health of the JobFix platform at a glance.' },
+    analytics: { title: 'Analytics', description: 'Review platform growth, hiring activity, and assessment performance.' },
+    people: { title: 'People', description: 'Review candidate and recruiter accounts.' },
+    operations: { title: 'Operations', description: 'Track companies, jobs, and applications across the platform.' },
+    'question-bank': { title: 'Question bank', description: 'Maintain assessment coverage and generate new question sets.' },
+  };
+  const currentSection = sectionInfo[section] ?? sectionInfo.overview;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Administration</h1>
-        <p className="mt-1 text-sm text-gray-500">Review platform users and seed question-bank content.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{currentSection.title}</h1>
+        <p className="mt-1 text-sm text-gray-500">{currentSection.description}</p>
       </div>
 
-      <section className="card p-5">
-        <h2 className="text-lg font-semibold text-gray-900">Seeded admin account</h2>
-        <p className="mt-2 text-sm text-gray-600">Run <code>npm run seed:admin</code> in <code>apps/core-service</code> before signing in.</p>
-        <p className="mt-2 text-sm text-gray-600">The email and password come from <code>ADMIN_EMAIL</code> and <code>ADMIN_PASSWORD</code>; default development values are documented in <code>.env.example</code>.</p>
-      </section>
+      {section === 'overview' && <>
+        <section className="card p-5">
+          <h2 className="text-lg font-semibold text-gray-900">Seeded admin account</h2>
+          <p className="mt-2 text-sm text-gray-600">Run <code>npm run seed:admin</code> in <code>apps/core-service</code> before signing in.</p>
+          <p className="mt-2 text-sm text-gray-600">The email and password come from <code>ADMIN_EMAIL</code> and <code>ADMIN_PASSWORD</code>; default development values are documented in <code>.env.example</code>.</p>
+        </section>
+        {analytics && <AnalyticsDashboardPanel analytics={analytics} />}
+      </>}
 
-      {analytics && <AnalyticsDashboardPanel analytics={analytics} />}
-      {overview && <AdminOperations overview={overview} />}
+      {section === 'analytics' && analytics && <AnalyticsDashboardPanel analytics={analytics} />}
+      {section === 'operations' && overview && <AdminOperations overview={overview} />}
 
-      <section className="card p-5">
+      {section === 'question-bank' && <section className="card p-5">
         <h2 className="text-lg font-semibold text-gray-900">Question-bank seeding</h2>
         <p className="mt-1 text-sm text-gray-500">Select one or more skills. Each selected skill is generated and stored independently.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -108,9 +123,13 @@ export function AdminPage() {
         <button className="btn-primary mt-4" disabled={seeding} onClick={seed}>{seeding ? 'Seeding…' : `Seed ${selectedSkills.length || ''} skill${selectedSkills.length === 1 ? '' : 's'}`}</button>
         {result && <p className="mt-3 text-sm text-emerald-700">Stored {result.stored} of {result.generated} generated questions.</p>}
       </section>
+      }
 
-      <UserSection title="Candidates" users={candidates} />
-      <UserSection title="Recruiters" users={recruiters} />
+      {section === 'question-bank' && overview && <QuestionCoverageTable coverage={overview.questionCoverage} />}
+      {section === 'people' && <>
+        <UserSection title="Candidates" users={candidates} />
+        <UserSection title="Recruiters" users={recruiters} />
+      </>}
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );
@@ -163,10 +182,13 @@ function AdminOperations({ overview }: { overview: AdminOverview }) {
     <ManagementTable title="Manage applications" empty="No applications have been submitted." headers={['Candidate', 'Job', 'Status', 'Resume match', 'Assessment']}>
       {overview.applications.map(application => <tr key={application.id}><td className="font-medium">{application.candidateName}<br /><span className="text-xs text-gray-500">{application.candidateEmail}</span></td><td>{application.jobTitle}</td><td className="capitalize">{application.status}</td><td>{application.resumeMatchScore.toFixed(1)}%</td><td>{application.assessmentScore === null ? application.assessmentStatus ?? 'Not started' : `${application.assessmentScore.toFixed(1)}%`}</td></tr>)}
     </ManagementTable>
-    <ManagementTable title="Question coverage" empty="No question-bank coverage is available." headers={['Role', 'Skill', 'Questions']}>
-      {overview.questionCoverage.map(item => <tr key={`${item.role}-${item.skill}`}><td>{item.role}</td><td className="font-medium">{item.skill}</td><td>{item.questionCount}</td></tr>)}
-    </ManagementTable>
   </>;
+}
+
+function QuestionCoverageTable({ coverage }: { coverage: AdminOverview['questionCoverage'] }) {
+  return <ManagementTable title="Question coverage" empty="No question-bank coverage is available." headers={['Role', 'Skill', 'Questions']}>
+    {coverage.map(item => <tr key={`${item.role}-${item.skill}`}><td>{item.role}</td><td className="font-medium">{item.skill}</td><td>{item.questionCount}</td></tr>)}
+  </ManagementTable>;
 }
 
 function StatCard({ title, value, detail }: { title: string; value: number; detail: string }) {

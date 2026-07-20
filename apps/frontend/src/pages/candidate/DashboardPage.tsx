@@ -27,11 +27,10 @@ export function CandidateDashboardPage() {
       setLoading(true);
       setError('');
       try {
-        const [candidateProfile, candidateSkills, candidateAssessments, candidateRecommendations] = await Promise.all([
+        const [candidateProfile, candidateSkills, candidateAssessments] = await Promise.all([
           candidatesApi.getProfile(),
           candidatesApi.getSkills(),
           assessmentsApi.listMine(),
-          candidatesApi.getJobRecommendations(),
         ]);
 
         if (ignore) return;
@@ -50,6 +49,10 @@ export function CandidateDashboardPage() {
           navigate('/candidate/assessment', { replace: true });
           return;
         }
+
+        const candidateRecommendations = await candidatesApi.getJobRecommendations();
+
+        if (ignore) return;
 
         setProfile(candidateProfile);
         setSkills(candidateSkills);

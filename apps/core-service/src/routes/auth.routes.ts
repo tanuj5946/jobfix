@@ -15,6 +15,8 @@ import {
   forgotPassword,
   validatePasswordResetToken,
   resetPassword,
+  sendPreRegistrationVerification,
+  checkPreRegistrationToken,
   RegisterSchema,
   LoginSchema,
   ForgotPasswordSchema,
@@ -27,6 +29,15 @@ const router = Router();
 
 router.use(authAuditLogger);
 router.use(authRateLimit);
+
+// ── Pre-registration email verification ──────────────────────
+// Step 1: Send verification email without creating a user account
+router.post('/send-pre-registration-verification', validate(RegisterSchema), sendPreRegistrationVerification);
+// Step 2: Polling endpoint — returns { verified: true } once the link is clicked
+router.get('/check-pre-registration-token', validate(VerificationTokenQuerySchema, 'query'), checkPreRegistrationToken);
+
+// ── Standard auth ────────────────────────────────────────────
+// Step 3: Create the user account (requires a verified pending entry)
 router.post('/register', validate(RegisterSchema), register);
 router.post('/login',    validate(LoginSchema),    login);
 router.post('/recruiter/login', validate(LoginSchema), loginRecruiter);

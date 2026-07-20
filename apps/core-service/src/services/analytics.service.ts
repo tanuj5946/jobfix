@@ -2,8 +2,6 @@ import { prisma } from '../config/database';
 
 const decimalValue = (value: { toNumber(): number } | null | undefined) => value?.toNumber() ?? null;
 
-/** Shared, read-only platform analytics. It derives pipeline rates from the
- * persisted assessment-question source so it does not instrument or alter AI. */
 export const analyticsService = {
   async getSummary() {
     const [

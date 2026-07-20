@@ -3,11 +3,14 @@ import {
   BarChart3,
   BriefcaseBusiness,
   Compass,
+  Database,
   FileCheck2,
   LayoutGrid,
   PencilRuler,
   Search,
+  Settings2,
   UserCircle2,
+  Users,
 } from 'lucide-react';
 import type { User } from '../types';
 import { FEATURES } from '../config/features';
@@ -36,7 +39,11 @@ const recruiterLinks = [
 ];
 
 const adminLinks = [
-  { to: '/admin', label: 'Administration', icon: BarChart3 },
+  { to: '/admin', label: 'Overview', icon: LayoutGrid },
+  { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/admin/people', label: 'People', icon: Users },
+  { to: '/admin/operations', label: 'Operations', icon: Settings2 },
+  { to: '/admin/question-bank', label: 'Question Bank', icon: Database },
 ];
 
 export function Sidebar({ user }: SidebarProps) {
@@ -51,7 +58,7 @@ export function Sidebar({ user }: SidebarProps) {
       <div className="flex items-center gap-3 rounded-[22px] border border-slate-200/80 bg-gradient-to-r from-blue-600 to-cyan-500 p-4 text-white shadow-lg shadow-blue-500/20">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 text-lg font-semibold">S</div>
         <div>
-          <p className="text-sm font-semibold">SmartFresher</p>
+          <p className="text-sm font-semibold">JOB-FIX</p>
           <p className="text-xs text-blue-50/90">AI hiring workspace</p>
         </div>
       </div>
